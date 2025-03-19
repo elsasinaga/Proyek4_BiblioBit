@@ -7,13 +7,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.bibliobit.R
 import com.example.bibliobit.ui.components.Button1
 import com.example.bibliobit.ui.components.Label
+import androidx.compose.foundation.Image
 
 @Composable
 fun LoginScreen(
@@ -29,8 +33,8 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
-            .background(MaterialTheme.colorScheme.background)
+//            .padding(16.dp)
+            .background(Color.White)
             .pointerInput(Unit) {
                 detectTapGestures(onTap = {
                     focusManager.clearFocus() // Hilangkan fokus saat area kosong ditekan
@@ -39,8 +43,15 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Image(
+            painter = painterResource(id = R.drawable.buat_login),
+            contentDescription = "Login Illustration",
+            modifier = Modifier
+                .size(260.dp) // Atur ukuran gambar (sesuaikan sesuai kebutuhan)
+                .padding(bottom = 16.dp) // Jarak antara gambar dan teks
+        )
         Text(
-            text = "Login",
+            text = "Hello Again!",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -51,6 +62,7 @@ fun LoginScreen(
             value = email,
             onValueChange = { viewModel.onEmailChange(it) },
             modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 26.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -60,12 +72,13 @@ fun LoginScreen(
             onValueChange = { viewModel.onPasswordChange(it) },
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 26.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
 
         Button1(
             onClick = { viewModel.login(onLoginSuccess) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(0.3f),
             enabled = !isLoading
         ) {
             if (isLoading) {
@@ -77,6 +90,19 @@ fun LoginScreen(
                 )
             }
         }
+
+        // Tambahkan teks "Lupa Password"
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Lupa Password?",
+            style = MaterialTheme.typography.labelSmall
+        )
+
+        // Tambahkan teks "Register"
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Belum punya akun? Register",
+            style = MaterialTheme.typography.labelSmall )
 
         if (errorMessage != null) {
             Spacer(modifier = Modifier.height(16.dp))

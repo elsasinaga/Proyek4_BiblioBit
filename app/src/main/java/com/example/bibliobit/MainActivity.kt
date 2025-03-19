@@ -7,9 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.bibliobit.ui.login.LoginScreen
 import com.example.bibliobit.ui.login.LoginViewModel
+import com.example.bibliobit.ui.register.RegisterScreen
+import com.example.bibliobit.ui.register.RegisterViewModel
 import com.example.bibliobit.ui.theme.BiblioBitTheme
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -38,14 +38,26 @@ class MainActivity : ComponentActivity() {
                         .background(MaterialTheme.colorScheme.background)
                 ) {
                     var isLoggedIn by remember { mutableStateOf(false) }
+                    var showRegisterScreen by remember { mutableStateOf(false) }
+
                     if (isLoggedIn) {
                         HomeScreen()
                     } else {
-                        val viewModel: LoginViewModel = hiltViewModel()
-                        LoginScreen(
-                            viewModel = viewModel,
-                            onLoginSuccess = { isLoggedIn = true }
-                        )
+                        if (showRegisterScreen) {
+                            val registerViewModel: RegisterViewModel = hiltViewModel()
+                            RegisterScreen(
+                                viewModel = registerViewModel,
+                                onRegisterSuccess = { isLoggedIn = true },
+                                onNavigateToLogin = { showRegisterScreen = false }
+                            )
+                        } else {
+                            val loginViewModel: LoginViewModel = hiltViewModel()
+                            LoginScreen(
+                                viewModel = loginViewModel,
+                                onLoginSuccess = { isLoggedIn = true },
+                                onNavigateToRegister = { showRegisterScreen = true }
+                            )
+                        }
                     }
                 }
             }

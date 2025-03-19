@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "716350595646",
+    "project_id": "bibliobit",
+    "storage_bucket": "bibliobit.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:716350595646:android:9da21dc2c88148fa78e76f",
+        "android_client_info": {
+          "package_name": "com.example.bibliobit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDETEPy4eBUCM0gQ6gxE72U00cWafWYHMc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

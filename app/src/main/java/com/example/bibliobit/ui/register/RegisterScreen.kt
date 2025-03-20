@@ -56,7 +56,7 @@ fun RegisterScreen(
         )
 
         Text(
-            text = "Hello Again!",
+            text = "BiblioBit",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(bottom = 24.dp)

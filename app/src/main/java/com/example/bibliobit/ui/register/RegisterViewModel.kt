@@ -81,7 +81,7 @@ class RegisterViewModel @Inject constructor(
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
-            val result = authRepository.register(email, password)
+            val result = authRepository.register(email, password, username) // Kirim username ke repository
             isLoading = false
             result.onSuccess {
                 onSuccess()

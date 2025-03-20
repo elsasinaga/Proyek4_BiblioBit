@@ -25,7 +25,7 @@ class LoginViewModel @Inject constructor(
         private set
 
     fun onEmailChange(newEmail: String) {
-        email = newEmail
+        email = newEmail.trim()
     }
 
     fun onPasswordChange(newPassword: String) {

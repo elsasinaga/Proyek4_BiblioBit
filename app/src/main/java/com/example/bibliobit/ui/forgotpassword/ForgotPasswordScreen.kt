@@ -1,5 +1,6 @@
-package com.example.bibliobit.ui.login
+package com.example.bibliobit.ui.forgotpassword
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -11,28 +12,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.bibliobit.R
 import com.example.bibliobit.ui.components.Button1
 import com.example.bibliobit.ui.components.Label
-import androidx.compose.foundation.Image
-import com.example.bibliobit.ui.theme.hitam
 
 @Composable
-fun LoginScreen(
-    viewModel: LoginViewModel = hiltViewModel(),
-    onLoginSuccess: () -> Unit,
-    onNavigateToRegister: () -> Unit,
-    onNavigateToForgotPassword: () -> Unit
-
+fun ForgotPasswordScreen(
+    viewModel: ForgotPasswordViewModel = hiltViewModel(),
+    onNavigateBack: () -> Unit
 ) {
     val email = viewModel.email
-    val password = viewModel.password
     val isLoading = viewModel.isLoading
     val errorMessage = viewModel.errorMessage
+    val successMessage = viewModel.successMessage
     val focusManager = LocalFocusManager.current
 
     Column(
@@ -40,22 +34,22 @@ fun LoginScreen(
             .fillMaxSize()
             .background(Color.White)
             .pointerInput(Unit) {
-                detectTapGestures(onTap = {
-                    focusManager.clearFocus() // Hilangkan fokus saat area kosong ditekan
-                })
+                detectTapGestures(onTap = { focusManager.clearFocus() })
             },
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Gambar ilustrasi (opsional, sesuaikan dengan tema)
         Image(
-            painter = painterResource(id = R.drawable.buat_login),
-            contentDescription = "Login Illustration",
+            painter = painterResource(id = R.drawable.buat_login), // Ganti dengan drawable yang sesuai
+            contentDescription = "Forgot Password Illustration",
             modifier = Modifier
                 .size(260.dp)
                 .padding(bottom = 16.dp)
         )
+
         Text(
-            text = "Hello Again!",
+            text = "Forgot Password",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -71,59 +65,39 @@ fun LoginScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        Label(
-            label = "Password",
-            value = password,
-            onValueChange = { viewModel.onPasswordChange(it) },
-            visualTransformation = PasswordVisualTransformation(),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 26.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
         Button1(
-            onClick = { viewModel.login(onLoginSuccess) },
-            modifier = Modifier.fillMaxWidth(0.3f),
+            onClick = { viewModel.resetPassword() },
+            modifier = Modifier.fillMaxWidth(0.5f),
             enabled = !isLoading
         ) {
             if (isLoading) {
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary)
             } else {
                 Text(
-                    text = "Login",
+                    text = "Send Email",
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-        TextButton(onClick = onNavigateToForgotPassword) {
+        TextButton(onClick = onNavigateBack) {
             Text(
-                text = "Lupa Password?",
+                text = "Kembali ke Login",
                 style = MaterialTheme.typography.labelSmall,
-                color = hitam
+                color = Color.Black
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-        TextButton(
-            onClick = onNavigateToRegister
-        ) {
-            Row {
-                Text(
-                    text = "Belum punya akun? ",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = hitam
-                )
-                Text(
-                    text = "Register",
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), // Membuat "Register" tebal
-                    color = hitam
-                )
-            }
+        // Pesan sukses atau error
+        if (successMessage != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = successMessage,
+                color = Color.Black,
+                style = MaterialTheme.typography.bodyLarge
+            )
         }
-
         if (errorMessage != null) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(

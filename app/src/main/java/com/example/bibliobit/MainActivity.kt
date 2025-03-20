@@ -24,6 +24,8 @@ import com.example.bibliobit.ui.theme.BiblioBitTheme
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.bibliobit.ui.HomeScreen
+import com.example.bibliobit.ui.forgotpassword.ForgotPasswordScreen
+import com.example.bibliobit.ui.forgotpassword.ForgotPasswordViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -39,24 +41,36 @@ class MainActivity : ComponentActivity() {
                 ) {
                     var isLoggedIn by remember { mutableStateOf(false) }
                     var showRegisterScreen by remember { mutableStateOf(false) }
+                    var showForgotPasswordScreen by remember { mutableStateOf(false) }
 
                     if (isLoggedIn) {
                         HomeScreen()
                     } else {
-                        if (showRegisterScreen) {
-                            val registerViewModel: RegisterViewModel = hiltViewModel()
-                            RegisterScreen(
-                                viewModel = registerViewModel,
-                                onRegisterSuccess = { isLoggedIn = true },
-                                onNavigateToLogin = { showRegisterScreen = false }
-                            )
-                        } else {
-                            val loginViewModel: LoginViewModel = hiltViewModel()
-                            LoginScreen(
-                                viewModel = loginViewModel,
-                                onLoginSuccess = { isLoggedIn = true },
-                                onNavigateToRegister = { showRegisterScreen = true }
-                            )
+                        when {
+                            showForgotPasswordScreen -> {
+                                val forgotPasswordViewModel: ForgotPasswordViewModel = hiltViewModel()
+                                ForgotPasswordScreen(
+                                    viewModel = forgotPasswordViewModel,
+                                    onNavigateBack = { showForgotPasswordScreen = false }
+                                )
+                            }
+                            showRegisterScreen -> {
+                                val registerViewModel: RegisterViewModel = hiltViewModel()
+                                RegisterScreen(
+                                    viewModel = registerViewModel,
+                                    onRegisterSuccess = { isLoggedIn = true },
+                                    onNavigateToLogin = { showRegisterScreen = false }
+                                )
+                            }
+                            else -> {
+                                val loginViewModel: LoginViewModel = hiltViewModel()
+                                LoginScreen(
+                                    viewModel = loginViewModel,
+                                    onLoginSuccess = { isLoggedIn = true },
+                                    onNavigateToRegister = { showRegisterScreen = true },
+                                    onNavigateToForgotPassword = { showForgotPasswordScreen = true }
+                                )
+                            }
                         }
                     }
                 }

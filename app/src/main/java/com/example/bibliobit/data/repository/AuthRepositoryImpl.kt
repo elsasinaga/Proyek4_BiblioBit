@@ -8,17 +8,18 @@ import javax.inject.Inject
 
 class AuthRepositoryImpl @Inject constructor(
     private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore // Tambahkan Firestore
+    private val firestore: FirebaseFirestore
 ) : AuthRepository {
     override suspend fun login(email: String, password: String): Result<User> {
         return try {
             val result = auth.signInWithEmailAndPassword(email, password).await()
             val firebaseUser = result.user
             if (firebaseUser != null) {
-                // Ambil username dari Firestore
+                // Ambil username dan name dari Firestore
                 val userDoc = firestore.collection("users").document(firebaseUser.uid).get().await()
                 val username = userDoc.getString("username") ?: ""
-                Result.success(User(email = firebaseUser.email ?: "", uid = firebaseUser.uid, username = username))
+                val name = userDoc.getString("name") ?: ""
+                Result.success(User(email = firebaseUser.email ?: "", uid = firebaseUser.uid, username = username, name = name))
             } else {
                 Result.failure(Exception("Login failed: User not found"))
             }
@@ -27,18 +28,19 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun register(email: String, password: String, username: String): Result<User> {
+    override suspend fun register(email: String, password: String, username: String, name: String): Result<User> {
         return try {
             val result = auth.createUserWithEmailAndPassword(email, password).await()
             val firebaseUser = result.user
             if (firebaseUser != null) {
-                // Simpan username ke Firestore
+                // Simpan username dan name ke Firestore
                 val userData = hashMapOf(
                     "email" to email,
-                    "username" to username
+                    "username" to username,
+                    "name" to name
                 )
                 firestore.collection("users").document(firebaseUser.uid).set(userData).await()
-                Result.success(User(email = firebaseUser.email ?: "", uid = firebaseUser.uid, username = username))
+                Result.success(User(email = firebaseUser.email ?: "", uid = firebaseUser.uid, username = username, name = name))
             } else {
                 Result.failure(Exception("Registration failed: User not created"))
             }

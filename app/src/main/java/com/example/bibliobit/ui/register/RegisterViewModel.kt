@@ -17,6 +17,8 @@ class RegisterViewModel @Inject constructor(
 
     var username by mutableStateOf("")
         private set
+    var name by mutableStateOf("") // Tambahkan state untuk name
+        private set
     var email by mutableStateOf("")
         private set
     var password by mutableStateOf("")
@@ -30,6 +32,10 @@ class RegisterViewModel @Inject constructor(
 
     fun onUsernameChange(newUsername: String) {
         username = newUsername.trim()
+    }
+
+    fun onNameChange(newName: String) { // Tambahkan fungsi untuk mengubah name
+        name = newName
     }
 
     fun onEmailChange(newEmail: String) {
@@ -52,6 +58,12 @@ class RegisterViewModel @Inject constructor(
         }
         if (!username.matches("^[a-zA-Z0-9_]+$".toRegex())) {
             errorMessage = "Username can only contain letters, numbers, and underscores"
+            return
+        }
+
+        // Validasi name
+        if (!name.matches("^[a-zA-Z ]+$".toRegex())) {
+            errorMessage = "Name can only contain letters and spaces"
             return
         }
 
@@ -81,7 +93,7 @@ class RegisterViewModel @Inject constructor(
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
-            val result = authRepository.register(email, password, username) // Kirim username ke repository
+            val result = authRepository.register(email, password, username, name) // Kirim name
             isLoading = false
             result.onSuccess {
                 onSuccess()

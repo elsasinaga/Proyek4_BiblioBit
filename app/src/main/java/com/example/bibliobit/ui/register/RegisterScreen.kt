@@ -27,6 +27,7 @@ fun RegisterScreen(
     onNavigateToLogin: () -> Unit
 ) {
     val username = viewModel.username
+    val name = viewModel.name // Tambahkan state name
     val email = viewModel.email
     val password = viewModel.password
     val confirmPassword = viewModel.confirmPassword
@@ -46,7 +47,6 @@ fun RegisterScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Gambar di bagian atas
         Image(
             painter = painterResource(id = R.drawable.register),
             contentDescription = "Register Illustration",
@@ -56,13 +56,12 @@ fun RegisterScreen(
         )
 
         Text(
-            text = "BiblioBit",
+            text = "Hello Again!",
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
-        // Field Username
         Label(
             label = "Username",
             value = username,
@@ -73,7 +72,16 @@ fun RegisterScreen(
                 .padding(bottom = 16.dp)
         )
 
-        // Field Email
+        Label(
+            label = "Nama", // Tambahkan field Nama
+            value = name,
+            onValueChange = { viewModel.onNameChange(it) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 26.dp)
+                .padding(bottom = 16.dp)
+        )
+
         Label(
             label = "Email",
             value = email,
@@ -84,7 +92,6 @@ fun RegisterScreen(
                 .padding(bottom = 16.dp)
         )
 
-        // Field Password
         Label(
             label = "Password",
             value = password,
@@ -96,7 +103,6 @@ fun RegisterScreen(
                 .padding(bottom = 16.dp)
         )
 
-        // Field Confirm Password
         Label(
             label = "Confirm Password",
             value = confirmPassword,
@@ -110,8 +116,7 @@ fun RegisterScreen(
 
         Button1(
             onClick = { viewModel.register(onRegisterSuccess) },
-            modifier = Modifier
-                .fillMaxWidth(0.3f),
+            modifier = Modifier.fillMaxWidth(0.3f),
             enabled = !isLoading
         ) {
             if (isLoading) {
@@ -142,7 +147,6 @@ fun RegisterScreen(
             }
         }
 
-        // Pesan error
         if (errorMessage != null) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(

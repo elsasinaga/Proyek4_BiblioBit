@@ -27,7 +27,7 @@ fun MainScreen(
     preferencesManager: PreferencesManager
 ) {
     val isOnboardingCompleted by preferencesManager.isOnboardingCompletedFlow.collectAsState(initial = false)
-    val startDestination = if (isOnboardingCompleted) "register" else "onboarding" // Ubah dari "login" ke "register"
+    val startDestination = if (isOnboardingCompleted) "register" else "onboarding"
 
     NavHost(navController = navController, startDestination = startDestination) {
         composable("onboarding") {
@@ -36,7 +36,7 @@ fun MainScreen(
             LaunchedEffect(isOnboardingFinished) {
                 if (isOnboardingFinished) {
                     preferencesManager.setOnboardingCompleted(true)
-                    navController.navigate("register") { // Ubah dari "login" ke "register"
+                    navController.navigate("register") {
                         popUpTo("onboarding") { inclusive = true }
                     }
                 }
@@ -70,7 +70,11 @@ fun MainScreen(
                         popUpTo("register") { inclusive = true }
                     }
                 },
-                onNavigateToLogin = { navController.popBackStack() }
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo("register") { inclusive = true } // Opsional
+                    }
+                }
             )
         }
         composable("forgot_password") {

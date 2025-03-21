@@ -10,22 +10,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.bibliobit.ui.login.LoginScreen
-import com.example.bibliobit.ui.login.LoginViewModel
-import com.example.bibliobit.ui.register.RegisterScreen
-import com.example.bibliobit.ui.register.RegisterViewModel
+import com.example.bibliobit.ui.MainScreen
 import com.example.bibliobit.ui.theme.BiblioBitTheme
+import com.example.bibliobit.utils.PreferencesManager
 import dagger.hilt.android.AndroidEntryPoint
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.bibliobit.ui.HomeScreen
-import com.example.bibliobit.ui.forgotpassword.ForgotPasswordScreen
-import com.example.bibliobit.ui.forgotpassword.ForgotPasswordViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -39,40 +29,9 @@ class MainActivity : ComponentActivity() {
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.background)
                 ) {
-                    var isLoggedIn by remember { mutableStateOf(false) }
-                    var showRegisterScreen by remember { mutableStateOf(false) }
-                    var showForgotPasswordScreen by remember { mutableStateOf(false) }
-
-                    if (isLoggedIn) {
-                        HomeScreen()
-                    } else {
-                        when {
-                            showForgotPasswordScreen -> {
-                                val forgotPasswordViewModel: ForgotPasswordViewModel = hiltViewModel()
-                                ForgotPasswordScreen(
-                                    viewModel = forgotPasswordViewModel,
-                                    onNavigateBack = { showForgotPasswordScreen = false }
-                                )
-                            }
-                            showRegisterScreen -> {
-                                val registerViewModel: RegisterViewModel = hiltViewModel()
-                                RegisterScreen(
-                                    viewModel = registerViewModel,
-                                    onRegisterSuccess = { isLoggedIn = true },
-                                    onNavigateToLogin = { showRegisterScreen = false }
-                                )
-                            }
-                            else -> {
-                                val loginViewModel: LoginViewModel = hiltViewModel()
-                                LoginScreen(
-                                    viewModel = loginViewModel,
-                                    onLoginSuccess = { isLoggedIn = true },
-                                    onNavigateToRegister = { showRegisterScreen = true },
-                                    onNavigateToForgotPassword = { showForgotPasswordScreen = true }
-                                )
-                            }
-                        }
-                    }
+                    MainScreen(
+                        preferencesManager = PreferencesManager(this@MainActivity)
+                    )
                 }
             }
         }

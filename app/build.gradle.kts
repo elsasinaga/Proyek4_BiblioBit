@@ -50,9 +50,13 @@ dependencies {
     implementation("androidx.compose.material:material:1.7.1")
     implementation("androidx.compose.ui:ui:1.7.1")
     implementation("androidx.compose.runtime:runtime:1.7.1")
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
     // Hilt
     implementation ("com.google.dagger:hilt-android:2.51.1")
     implementation(libs.firebase.auth.ktx)
+    implementation(libs.androidx.datastore.core.android)
+    implementation(libs.androidx.datastore.preferences.core.jvm)
     kapt("com.google.dagger:hilt-android-compiler:2.51.1")
 //    implementation("com.google.dagger:hilt-navigation-compose:1.2.0")
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")

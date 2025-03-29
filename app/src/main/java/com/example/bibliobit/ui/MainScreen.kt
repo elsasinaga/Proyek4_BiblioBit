@@ -4,8 +4,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,16 +15,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.bibliobit.R
-import com.example.bibliobit.ui.forgotpassword.ForgotPasswordScreen
+import com.example.bibliobit.ui.components.BottomNavigationBar
 import com.example.bibliobit.ui.forgotpassword.ForgotPasswordViewModel
-import com.example.bibliobit.ui.login.LoginScreen
 import com.example.bibliobit.ui.login.LoginViewModel
-import com.example.bibliobit.ui.onboarding.OnboardingScreen
-import com.example.bibliobit.ui.register.RegisterScreen
+import com.example.bibliobit.ui.navigation.AppNavHost
+import com.example.bibliobit.ui.navigation.Screen
 import com.example.bibliobit.ui.register.RegisterViewModel
 import com.example.bibliobit.utils.PreferencesManager
 
@@ -82,7 +79,7 @@ fun MainScreen(
                 )
 
                 Image(
-                    painter = painterResource(id = R.drawable.logo), // Ganti dengan logo Anda
+                    painter = painterResource(id = R.drawable.logo_bibliobit), // Ganti dengan logo Anda
                     contentDescription = "App Logo",
                     modifier = Modifier
                         .size(100.dp)
@@ -115,65 +112,36 @@ fun MainScreen(
             }
         }
     } else {
-        val startDestination = if (isOnboardingCompleted) "register" else "onboarding"
+        // Gunakan rute dari Screen sealed class untuk startDestination
+        val startDestination = if (isOnboardingCompleted) Screen.Register.route else Screen.Onboarding.route
 
-        NavHost(navController = navController, startDestination = startDestination) {
-            composable("onboarding") {
-                var isOnboardingFinished by remember { mutableStateOf(false) }
+        // Ambil rute saat ini dengan penanganan null safety
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentRoute = navBackStackEntry?.destination?.route
 
-                LaunchedEffect(isOnboardingFinished) {
-                    if (isOnboardingFinished) {
-                        preferencesManager.setOnboardingCompleted(true)
-                        navController.navigate("register") {
-                            popUpTo("onboarding") { inclusive = true }
-                        }
-                    }
+        // Tentukan rute-rute di mana navigation bar TIDAK ditampilkan
+        val routesWithoutBottomBar = listOf(
+            Screen.Onboarding.route,
+            Screen.Login.route,
+            Screen.Register.route,
+            Screen.ForgotPassword.route
+        )
+
+        Scaffold(
+            bottomBar = {
+                if (currentRoute != null && currentRoute !in routesWithoutBottomBar) {
+                    BottomNavigationBar(
+                        navController = navController,
+                        currentRoute = currentRoute
+                    )
                 }
-
-                OnboardingScreen(
-                    onBoardingComplete = {
-                        isOnboardingFinished = true
-                    }
-                )
             }
-            composable("login") {
-                val loginViewModel: LoginViewModel = hiltViewModel()
-                LoginScreen(
-                    viewModel = loginViewModel,
-                    onLoginSuccess = {
-                        navController.navigate("home") {
-                            popUpTo("login") { inclusive = true }
-                        }
-                    },
-                    onNavigateToRegister = { navController.navigate("register") },
-                    onNavigateToForgotPassword = { navController.navigate("forgot_password") }
+        ) { innerPadding ->
+            Box(modifier = Modifier.padding(innerPadding)) {
+                AppNavHost(
+                    navController = navController,
+                    preferencesManager = preferencesManager
                 )
-            }
-            composable("register") {
-                val registerViewModel: RegisterViewModel = hiltViewModel()
-                RegisterScreen(
-                    viewModel = registerViewModel,
-                    onRegisterSuccess = {
-                        navController.navigate("home") {
-                            popUpTo("register") { inclusive = true }
-                        }
-                    },
-                    onNavigateToLogin = {
-                        navController.navigate("login") {
-                            popUpTo("register") { inclusive = true }
-                        }
-                    }
-                )
-            }
-            composable("forgot_password") {
-                val forgotPasswordViewModel: ForgotPasswordViewModel = hiltViewModel()
-                ForgotPasswordScreen(
-                    viewModel = forgotPasswordViewModel,
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-            composable("home") {
-                HomeScreen()
             }
         }
     }

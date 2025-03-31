@@ -13,18 +13,15 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.bibliobit.R
 import com.example.bibliobit.ui.components.BottomNavigationBar
-import com.example.bibliobit.ui.forgotpassword.ForgotPasswordViewModel
-import com.example.bibliobit.ui.login.LoginViewModel
 import com.example.bibliobit.ui.navigation.AppNavHost
 import com.example.bibliobit.ui.navigation.Screen
-import com.example.bibliobit.ui.register.RegisterViewModel
 import com.example.bibliobit.utils.PreferencesManager
+import kotlinx.coroutines.delay
 
 @Composable
 fun MainScreen(
@@ -32,17 +29,13 @@ fun MainScreen(
     preferencesManager: PreferencesManager
 ) {
     var isLoading by remember { mutableStateOf(true) }
-    var isOnboardingCompleted by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        preferencesManager.isOnboardingCompletedFlow.collect { completed ->
-            isOnboardingCompleted = completed
-            isLoading = false
-        }
+        delay(2000) // Simulasi loading selama 2 detik untuk menampilkan launch icon
+        isLoading = false // Setelah loading selesai, ke AppNavHost
     }
 
     if (isLoading) {
-        // Animasi untuk layar loading
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -52,53 +45,41 @@ fun MainScreen(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Animasi Fade-In untuk logo
                 var logoAlpha by remember { mutableStateOf(0f) }
                 val alphaAnimation by animateFloatAsState(
                     targetValue = logoAlpha,
-                    animationSpec = tween(
-                        durationMillis = 1000, // Durasi animasi fade-in
-                        easing = LinearEasing
-                    )
+                    animationSpec = tween(durationMillis = 1000, easing = LinearEasing)
                 )
 
                 LaunchedEffect(Unit) {
-                    logoAlpha = 1f // Mulai animasi fade-in
+                    logoAlpha = 1f
                 }
 
-                // Animasi Pulsasi untuk logo
                 val scaleAnimation by animateFloatAsState(
                     targetValue = 1f,
                     animationSpec = infiniteRepeatable(
-                        animation = tween(
-                            durationMillis = 1200,
-                            easing = FastOutSlowInEasing
-                        ),
+                        animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
                         repeatMode = RepeatMode.Reverse
                     )
                 )
 
                 Image(
-                    painter = painterResource(id = R.drawable.logo_bibliobit), // Ganti dengan logo Anda
+                    painter = painterResource(id = R.drawable.logo_bibliobit),
                     contentDescription = "App Logo",
                     modifier = Modifier
                         .size(100.dp)
-                        .alpha(alphaAnimation) // Animasi fade-in
-                        .scale(scaleAnimation) // Animasi pulsasi
+                        .alpha(alphaAnimation)
+                        .scale(scaleAnimation)
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Animasi Rotasi untuk indikator loading
                 val infiniteTransition = rememberInfiniteTransition()
                 val rotation by infiniteTransition.animateFloat(
                     initialValue = 0f,
                     targetValue = 360f,
                     animationSpec = infiniteRepeatable(
-                        animation = tween(
-                            durationMillis = 1000, // Durasi satu putaran
-                            easing = LinearEasing
-                        ),
+                        animation = tween(durationMillis = 1000, easing = LinearEasing),
                         repeatMode = RepeatMode.Restart
                     )
                 )
@@ -106,20 +87,14 @@ fun MainScreen(
                 CircularProgressIndicator(
                     modifier = Modifier
                         .size(40.dp)
-                        .rotate(rotation), // Animasi rotasi
+                        .rotate(rotation),
                     color = MaterialTheme.colorScheme.primary
                 )
             }
         }
     } else {
-        // Gunakan rute dari Screen sealed class untuk startDestination
-        val startDestination = if (isOnboardingCompleted) Screen.Register.route else Screen.Onboarding.route
-
-        // Ambil rute saat ini dengan penanganan null safety
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
-
-        // Tentukan rute-rute di mana navigation bar TIDAK ditampilkan
         val routesWithoutBottomBar = listOf(
             Screen.Onboarding.route,
             Screen.Login.route,
@@ -130,18 +105,12 @@ fun MainScreen(
         Scaffold(
             bottomBar = {
                 if (currentRoute != null && currentRoute !in routesWithoutBottomBar) {
-                    BottomNavigationBar(
-                        navController = navController,
-                        currentRoute = currentRoute
-                    )
+                    BottomNavigationBar(navController = navController, currentRoute = currentRoute)
                 }
             }
         ) { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding)) {
-                AppNavHost(
-                    navController = navController,
-                    preferencesManager = preferencesManager
-                )
+                AppNavHost(navController = navController, preferencesManager = preferencesManager)
             }
         }
     }

@@ -8,7 +8,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
@@ -20,7 +19,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
@@ -29,12 +27,12 @@ import java.io.File
 @Composable
 fun ProfileScreen(
     modifier: Modifier = Modifier,
-    viewModel: ProfileViewModel = hiltViewModel()
+    viewModel: ProfileViewModel = hiltViewModel(),
+    onNavigateToLogin: () -> Unit = {}
 ) {
-    val profileData by viewModel.dataProfile.observeAsState()
+    val profileData by viewModel.profileData.observeAsState()
     var isEditing by remember { mutableStateOf(false) }
-    var nama by remember { mutableStateOf(profileData?.nama ?: "") }
-    val id by remember { mutableStateOf(profileData?.id?.toString() ?: "") }
+    var name by remember { mutableStateOf(profileData?.name ?: "") }
     var email by remember { mutableStateOf(profileData?.email ?: "") }
     var username by remember { mutableStateOf(profileData?.username ?: "") }
     var profileImagePath by remember { mutableStateOf(profileData?.profileImage ?: "") }
@@ -52,11 +50,19 @@ fun ProfileScreen(
 
     LaunchedEffect(profileData) {
         profileData?.let { profile ->
-            nama = profile.nama
+            name = profile.name
             email = profile.email
             username = profile.username
             profileImagePath = profile.profileImage ?: ""
         }
+    }
+
+    // Tampilkan loading jika profileData belum ada
+    if (profileData == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
     }
 
     Box(
@@ -106,9 +112,9 @@ fun ProfileScreen(
 
             if (isEditing) {
                 OutlinedTextField(
-                    value = nama,
-                    onValueChange = { nama = it },
-                    label = { Text("Nama") },
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Name") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -123,17 +129,13 @@ fun ProfileScreen(
                     value = email,
                     onValueChange = { email = it },
                     label = { Text("Email") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                     onClick = {
-                        viewModel.upsertProfile(
-                            id = id.toIntOrNull() ?: 0,
-                            nama = nama,
-                            email = email,
-                            username = username
-                        )
+                        viewModel.upsertProfile(name, username)
                         isEditing = false
                     },
                     modifier = Modifier.fillMaxWidth()
@@ -141,8 +143,8 @@ fun ProfileScreen(
                     Text("Save")
                 }
             } else {
-                Text(text = "Name: $nama", style = MaterialTheme.typography.bodyLarge)
-                Text(text = "NIM: $username", style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Name: $name", style = MaterialTheme.typography.bodyLarge)
+                Text(text = "Username: $username", style = MaterialTheme.typography.bodyMedium)
                 Text(text = "Email: $email", style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
@@ -151,6 +153,16 @@ fun ProfileScreen(
                 ) {
                     Text("Edit Profile")
                 }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = {
+                    viewModel.logout()
+                    onNavigateToLogin()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Logout")
             }
         }
     }

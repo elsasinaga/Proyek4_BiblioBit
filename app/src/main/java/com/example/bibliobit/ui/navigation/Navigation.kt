@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -25,6 +25,8 @@ import com.example.bibliobit.ui.onboarding.OnboardingScreen
 import com.example.bibliobit.ui.profile.ProfileScreen
 import com.example.bibliobit.ui.register.RegisterScreen
 import com.example.bibliobit.ui.register.RegisterViewModel
+import com.example.bibliobit.utils.PreferencesManager
+import com.google.firebase.auth.FirebaseAuth
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
@@ -41,19 +43,26 @@ sealed class Screen(val route: String) {
 @Composable
 fun AppNavHost(
     navController: NavHostController,
-    preferencesManager: com.example.bibliobit.utils.PreferencesManager,
+    preferencesManager: PreferencesManager,
     modifier: Modifier = Modifier
 ) {
-    NavHost(navController = navController, startDestination = Screen.Onboarding.route, modifier = modifier) {
+    val auth = FirebaseAuth.getInstance()
 
+    NavHost(navController = navController, startDestination = Screen.Onboarding.route, modifier = modifier) {
         composable(Screen.Onboarding.route) {
             var isOnboardingFinished by remember { mutableStateOf(false) }
 
             LaunchedEffect(isOnboardingFinished) {
                 if (isOnboardingFinished) {
                     preferencesManager.setOnboardingCompleted(true)
-                    navController.navigate(Screen.Register.route) {
-                        popUpTo(Screen.Onboarding.route) { inclusive = true }
+                    if (auth.currentUser != null) {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Onboarding.route) { inclusive = true }
+                        }
                     }
                 }
             }
@@ -65,7 +74,6 @@ fun AppNavHost(
             )
         }
 
-        // route login
         composable(Screen.Login.route) {
             val loginViewModel: LoginViewModel = hiltViewModel()
             LoginScreen(
@@ -80,7 +88,6 @@ fun AppNavHost(
             )
         }
 
-        // route register
         composable(Screen.Register.route) {
             val registerViewModel: RegisterViewModel = hiltViewModel()
             RegisterScreen(
@@ -98,7 +105,6 @@ fun AppNavHost(
             )
         }
 
-        // route forgot password
         composable(Screen.ForgotPassword.route) {
             val forgotPasswordViewModel: ForgotPasswordViewModel = hiltViewModel()
             ForgotPasswordScreen(
@@ -107,14 +113,11 @@ fun AppNavHost(
             )
         }
 
-        // route home
         composable(Screen.Home.route) {
             HomeScreen()
         }
 
-        // route add buku
         composable(Screen.Add.route) {
-            // Placeholder untuk AddScreen
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
@@ -124,9 +127,7 @@ fun AppNavHost(
             }
         }
 
-        // route statistik
         composable(Screen.Statistic.route) {
-            // Placeholder untuk StatisticScreen
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
@@ -136,9 +137,7 @@ fun AppNavHost(
             }
         }
 
-        // route perpustakaan
         composable(Screen.Library.route) {
-            // Placeholder untuk BookScreen
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
@@ -148,9 +147,22 @@ fun AppNavHost(
             }
         }
 
-        // route profile
         composable(Screen.Profile.route) {
-            ProfileScreen(modifier = Modifier)
+            ProfileScreen(
+                modifier = Modifier,
+//                onNavigateToLogin = {
+//                    navController.navigate(Screen.Login.route) {
+//                        popUpTo(Screen.Home.route) { inclusive = true }
+//                        launchSingleTop = true
+//                    }
+//                }
+                onNavigateToLogin = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                }
+            )
         }
     }
 }

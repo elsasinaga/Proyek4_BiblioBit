@@ -52,6 +52,8 @@ dependencies {
     implementation("androidx.compose.runtime:runtime:1.7.1")
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("io.coil-kt:coil-compose:2.4.0")
+
     // Hilt
     implementation ("com.google.dagger:hilt-android:2.51.1")
     implementation(libs.firebase.auth.ktx)
@@ -61,12 +63,20 @@ dependencies {
     kapt("com.google.dagger:hilt-android-compiler:2.51.1")
 //    implementation("com.google.dagger:hilt-navigation-compose:1.2.0")
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")
+//    kapt "com.google.dagger:hilt-compiler:2.48"
 
+    //firebase
     implementation(platform("com.google.firebase:firebase-bom:33.10.0"))
     implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-firestore-ktx:24.10.0")
+    implementation ("com.google.firebase:firebase-auth-ktx:22.3.1")
+    implementation ("com.google.firebase:firebase-firestore-ktx:24.10.3")
 
-    implementation("io.coil-kt:coil-compose:2.4.0")
+    //room
+    implementation("androidx.room:room-ktx:2.6.1")
+    implementation ("androidx.room:room-runtime:2.6.1")
+    kapt ("androidx.room:room-compiler:2.6.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

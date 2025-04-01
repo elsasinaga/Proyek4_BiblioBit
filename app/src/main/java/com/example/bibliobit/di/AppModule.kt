@@ -1,9 +1,13 @@
 package com.example.bibliobit.di
 
 import android.content.Context
+import androidx.room.Room
 import com.example.bibliobit.data.repository.AppDatabase
+import com.example.bibliobit.data.repository.BookDao
+import com.example.bibliobit.data.repository.UserDao
 import com.example.bibliobit.data.repository.AuthRepository
 import com.example.bibliobit.data.repository.AuthRepositoryImpl
+import com.example.bibliobit.data.repository.BookRepository
 import com.example.bibliobit.utils.PreferencesManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -44,6 +48,30 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
-        return AppDatabase.getDatabase(context)
+        return Room.databaseBuilder(
+            context,
+            AppDatabase::class.java,
+            "bibliobit_database"
+        )
+            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserDao(appDatabase: AppDatabase): UserDao {
+        return appDatabase.userDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBookDao(appDatabase: AppDatabase): BookDao {
+        return appDatabase.bookDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideBookRepository(bookDao: BookDao): BookRepository {
+        return BookRepository(bookDao)
     }
 }

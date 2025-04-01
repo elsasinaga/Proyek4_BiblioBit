@@ -17,6 +17,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.bibliobit.ui.HomeScreen
+import com.example.bibliobit.ui.addbook.AddBookScreen
+import com.example.bibliobit.ui.addbook.AddBookViewModel
 import com.example.bibliobit.ui.forgotpassword.ForgotPasswordScreen
 import com.example.bibliobit.ui.forgotpassword.ForgotPasswordViewModel
 import com.example.bibliobit.ui.login.LoginScreen
@@ -118,13 +120,11 @@ fun AppNavHost(
         }
 
         composable(Screen.Add.route) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = "Add Screen")
-            }
+            val viewModel: AddBookViewModel = hiltViewModel() // Gunakan AddBookViewModel
+            AddBookScreen(
+                navController = navController,
+                viewModel = viewModel
+            )
         }
 
         composable(Screen.Statistic.route) {
@@ -150,12 +150,6 @@ fun AppNavHost(
         composable(Screen.Profile.route) {
             ProfileScreen(
                 modifier = Modifier,
-//                onNavigateToLogin = {
-//                    navController.navigate(Screen.Login.route) {
-//                        popUpTo(Screen.Home.route) { inclusive = true }
-//                        launchSingleTop = true
-//                    }
-//                }
                 onNavigateToLogin = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(navController.graph.startDestinationId) { inclusive = true }

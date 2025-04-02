@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
@@ -133,7 +135,7 @@ fun AddBookScreen(
     if (showAddBookDialog) {
         AddBookDialog(
             onDismiss = { showAddBookDialog = false },
-            onAddBook = { title, author, genre, year, description, isbn, coverPhotoUri ->
+            onAddBook = { title, author, genre, year, description, isbn, page, publisher, coverPhotoUri ->
                 // Simpan foto ke penyimpanan internal dan dapatkan path-nya
                 val coverPhotoPath = coverPhotoUri?.let { uri ->
                     FileUtils.savePhotoToInternalStorage(context, uri)
@@ -147,6 +149,8 @@ fun AddBookScreen(
                     year = year,
                     description = description,
                     isbn = isbn,
+                    pages = page,
+                    publisher = publisher,
                     coverPhotoPath = coverPhotoPath
                 )
 
@@ -229,7 +233,7 @@ fun BookItem(
 @Composable
 fun AddBookDialog(
     onDismiss: () -> Unit,
-    onAddBook: (String, String, String?, Int?, String?, String?, Uri?) -> Unit
+    onAddBook: (String, String, String?, Int?, String?, String?, Int?, String?, Uri?) -> Unit
 ) {
     // State untuk input form
     var title by remember { mutableStateOf("") }
@@ -238,6 +242,8 @@ fun AddBookDialog(
     var year by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var isbn by remember { mutableStateOf("") }
+    var page by remember { mutableStateOf("") }
+    var publisher by remember { mutableStateOf("") }
     var coverPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
     // State untuk menentukan apakah dialog pemilihan sumber foto ditampilkan
@@ -311,12 +317,14 @@ fun AddBookDialog(
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier
                 .width(850.dp)
+                .heightIn(max = 600.dp)
                 .padding(1.dp)
         ) {
             Column(
                 modifier = Modifier
                     .padding(16.dp)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
@@ -398,6 +406,23 @@ fun AddBookDialog(
                     shape = RoundedCornerShape(12.dp)
                 )
 
+                OutlinedTextField(
+                    value = page,
+                    onValueChange = { page = it },
+                    label = { Text("Pages (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                OutlinedTextField(
+                    value = publisher,
+                    onValueChange = { publisher = it },
+                    label = { Text("Publisher (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -417,6 +442,8 @@ fun AddBookDialog(
                                     year.toIntOrNull(),
                                     description.takeIf { it.isNotBlank() },
                                     isbn.takeIf { it.isNotBlank() },
+                                    page.toIntOrNull(),
+                                    publisher.takeIf { it.isNotBlank() },
                                     coverPhotoUri
                                 )
                             }

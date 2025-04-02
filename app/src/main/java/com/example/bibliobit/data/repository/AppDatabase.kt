@@ -1,19 +1,16 @@
 package com.example.bibliobit.data.repository
 
-import android.content.Context
 import androidx.room.Database
-import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.bibliobit.data.model.LocalUser
-import com.example.bibliobit.data.model.Book
-import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import com.example.bibliobit.data.model.Book
+import com.example.bibliobit.data.model.LocalUser
 
-@Database(entities = [LocalUser::class, Book::class], version = 2, exportSchema = false)
+@Database(entities = [LocalUser::class, Book::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun bookDao(): BookDao
-
 
     companion object {
         // Migrasi dari versi 1 ke versi 2
@@ -32,6 +29,16 @@ abstract class AppDatabase : RoomDatabase() {
                         `coverPhotoPath` TEXT
                     )
                 """.trimIndent())
+            }
+        }
+
+        // Migrasi dari versi 2 ke versi 3
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Tambahkan kolom pages (INTEGER, nullable)
+                database.execSQL("ALTER TABLE books ADD COLUMN pages INTEGER")
+                // Tambahkan kolom publisher (TEXT, nullable)
+                database.execSQL("ALTER TABLE books ADD COLUMN publisher TEXT")
             }
         }
     }

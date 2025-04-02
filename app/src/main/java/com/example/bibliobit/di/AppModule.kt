@@ -53,7 +53,7 @@ object AppModule {
             AppDatabase::class.java,
             "bibliobit_database"
         )
-            .addMigrations(AppDatabase.MIGRATION_1_2)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
             .build()
     }
 

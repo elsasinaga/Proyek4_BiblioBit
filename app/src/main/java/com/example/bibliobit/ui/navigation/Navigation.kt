@@ -16,9 +16,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.bibliobit.ui.HomeScreen
 import com.example.bibliobit.ui.addbook.AddBookScreen
 import com.example.bibliobit.ui.addbook.AddBookViewModel
+import com.example.bibliobit.ui.bookdetail.BookDetailScreen
+import com.example.bibliobit.ui.bookdetail.BookDetailViewModel
 import com.example.bibliobit.ui.forgotpassword.ForgotPasswordScreen
 import com.example.bibliobit.ui.forgotpassword.ForgotPasswordViewModel
 import com.example.bibliobit.ui.login.LoginScreen
@@ -40,6 +44,9 @@ sealed class Screen(val route: String) {
     object Statistic : Screen("statistic")
     object Library : Screen("library")
     object Profile : Screen("profile")
+    object BookDetail : Screen("book_detail/{bookId}") {
+        fun createRoute(bookId: Long) = "book_detail/$bookId"
+    }
 }
 
 @Composable
@@ -50,7 +57,11 @@ fun AppNavHost(
 ) {
     val auth = FirebaseAuth.getInstance()
 
-    NavHost(navController = navController, startDestination = Screen.Onboarding.route, modifier = modifier) {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Onboarding.route,
+        modifier = modifier
+    ) {
         composable(Screen.Onboarding.route) {
             var isOnboardingFinished by remember { mutableStateOf(false) }
 
@@ -120,10 +131,23 @@ fun AppNavHost(
         }
 
         composable(Screen.Add.route) {
-            val viewModel: AddBookViewModel = hiltViewModel() // Gunakan AddBookViewModel
+            val viewModel: AddBookViewModel = hiltViewModel()
             AddBookScreen(
                 navController = navController,
                 viewModel = viewModel
+            )
+        }
+
+        composable(
+            route = Screen.BookDetail.route,
+            arguments = listOf(navArgument("bookId") { type = androidx.navigation.NavType.LongType })
+        ) { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val viewModel: BookDetailViewModel = hiltViewModel()
+            BookDetailScreen(
+                bookId = bookId,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

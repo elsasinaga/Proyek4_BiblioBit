@@ -64,7 +64,7 @@ fun MainScreen(
                 )
 
                 Image(
-                    painter = painterResource(id = R.drawable.logo_bibliobit),
+                    painter = painterResource(id = R.drawable.logo_hijau),
                     contentDescription = "App Logo",
                     modifier = Modifier
                         .size(100.dp)

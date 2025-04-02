@@ -27,16 +27,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.bibliobit.R
 import com.example.bibliobit.data.model.Book
-import com.example.bibliobit.ui.theme.BiblioBitTheme
+import com.example.bibliobit.ui.navigation.Screen
 import com.example.bibliobit.utils.FileUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,15 +50,9 @@ fun AddBookScreen(
     modifier: Modifier = Modifier,
     viewModel: AddBookViewModel
 ) {
-    // State untuk mengontrol visibilitas dialog
     var showAddBookDialog by remember { mutableStateOf(false) }
-    // State untuk search query
     var searchQuery by remember { mutableStateOf("") }
-
-    // Ambil daftar buku dari ViewModel
     val books by viewModel.books.collectAsState(initial = emptyList())
-
-    // Ambil context di dalam konteks @Composable
     val context = LocalContext.current
 
     Column(
@@ -68,14 +60,12 @@ fun AddBookScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Header: Search box dan ikon
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Search box
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -92,12 +82,8 @@ fun AddBookScreen(
                 shape = RoundedCornerShape(12.dp)
             )
 
-            // Ikon Scan
             IconButton(
-                onClick = {
-                    // Placeholder untuk fungsi scan
-                    // Nanti bisa diintegrasikan dengan library seperti ZXing untuk scan barcode
-                },
+                onClick = { /* Placeholder untuk fungsi scan */ },
                 modifier = Modifier.padding(end = 8.dp)
             ) {
                 Icon(
@@ -107,7 +93,6 @@ fun AddBookScreen(
                 )
             }
 
-            // Ikon Plus (Add Book)
             IconButton(
                 onClick = { showAddBookDialog = true }
             ) {
@@ -119,7 +104,6 @@ fun AddBookScreen(
             }
         }
 
-        // Tampilkan daftar buku di bawah search box
         if (books.isEmpty()) {
             Text(
                 text = "No books added yet",
@@ -129,19 +113,23 @@ fun AddBookScreen(
             )
         } else {
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2), // 2 kolom untuk menampilkan 2 buku per baris
+                columns = GridCells.Fixed(2),
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(books) { book ->
-                    BookItem(book = book)
+                    BookItem(
+                        book = book,
+                        onClick = {
+                            navController.navigate(Screen.BookDetail.createRoute(book.id))
+                        }
+                    )
                 }
             }
         }
     }
 
-    // Dialog untuk menambah buku secara manual
     if (showAddBookDialog) {
         AddBookDialog(
             onDismiss = { showAddBookDialog = false },
@@ -174,14 +162,17 @@ fun AddBookScreen(
 }
 
 @Composable
-fun BookItem(book: Book) {
+fun BookItem(
+    book: Book,
+    onClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(4.dp),
-        horizontalAlignment = Alignment.Start // Rata kiri untuk teks
+            .padding(4.dp)
+            .clickable { onClick() },
+        horizontalAlignment = Alignment.Start
     ) {
-        // Tampilkan cover buku jika ada, atau placeholder jika tidak ada
         if (book.coverPhotoPath != null) {
             Image(
                 painter = rememberAsyncImagePainter(book.coverPhotoPath),
@@ -190,17 +181,16 @@ fun BookItem(book: Book) {
                     .width(140.dp)
                     .height(210.dp)
                     .padding(bottom = 8.dp)
-                    .clip(RoundedCornerShape(8.dp)), // Border radius untuk cover
+                    .clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop
             )
         } else {
-            // Placeholder jika tidak ada cover
             Surface(
                 modifier = Modifier
                     .width(140.dp)
                     .height(210.dp)
                     .padding(bottom = 8.dp)
-                    .clip(RoundedCornerShape(8.dp)), // Border radius untuk placeholder
+                    .clip(RoundedCornerShape(8.dp)),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
                 shape = RoundedCornerShape(8.dp)
             ) {
@@ -214,24 +204,22 @@ fun BookItem(book: Book) {
             }
         }
 
-        // Tampilkan judul buku
         Text(
             text = book.title,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Start, // Rata kiri
+            textAlign = TextAlign.Start,
             maxLines = 2,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 4.dp)
         )
 
-        // Tampilkan nama penulis
         Text(
             text = book.author,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-            textAlign = TextAlign.Start, // Rata kiri
+            textAlign = TextAlign.Start,
             maxLines = 1,
             modifier = Modifier.fillMaxWidth()
         )

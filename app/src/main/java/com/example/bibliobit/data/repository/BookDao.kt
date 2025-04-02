@@ -13,4 +13,7 @@ interface BookDao {
 
     @Query("SELECT * FROM books")
     fun getAllBooks(): Flow<List<Book>>
+
+    @Query("SELECT * FROM books WHERE id = :bookId")
+    fun getBookById(bookId: Long): Flow<Book?>
 }

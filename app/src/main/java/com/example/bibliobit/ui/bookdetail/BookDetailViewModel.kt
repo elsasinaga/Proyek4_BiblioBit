@@ -1,4 +1,4 @@
-package com.example.bibliobit.ui.addbook
+package com.example.bibliobit.ui.bookdetail
 
 import androidx.lifecycle.ViewModel
 import com.example.bibliobit.data.model.Book
@@ -8,15 +8,11 @@ import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
 @HiltViewModel
-class AddBookViewModel @Inject constructor(
+class BookDetailViewModel @Inject constructor(
     private val bookRepository: BookRepository
 ) : ViewModel() {
 
-    // Daftar buku yang diambil dari BookRepository
-    val books: Flow<List<Book>> = bookRepository.getAllBooks()
-
-    // Fungsi untuk menambahkan buku ke database
-    suspend fun insertBook(book: Book) {
-        bookRepository.insertBook(book)
+    fun getBookById(bookId: Long): Flow<Book?> {
+        return bookRepository.getBookById(bookId)
     }
 }

@@ -1,6 +1,5 @@
 package com.example.bibliobit.data.repository
 
-import com.example.bibliobit.data.repository.BookDao
 import com.example.bibliobit.data.model.Book
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -14,5 +13,9 @@ class BookRepository @Inject constructor(
 
     fun getAllBooks(): Flow<List<Book>> {
         return bookDao.getAllBooks()
+    }
+
+    fun getBookById(bookId: Long): Flow<Book?> {
+        return bookDao.getBookById(bookId)
     }
 }

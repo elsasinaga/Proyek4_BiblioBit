@@ -63,7 +63,13 @@ fun BottomNavigationBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         items.forEach { (screen, icon) ->
-            val isSelected = currentRoute == screen.route
+            // Jika currentRoute adalah book_detail/{bookId}, anggap sebagai bagian dari "Add"
+            val isSelected = if (currentRoute?.startsWith("book_detail/") == true) {
+                screen.route == Screen.Add.route // Aktifkan "Add" jika di BookDetailScreen
+            } else {
+                currentRoute == screen.route
+            }
+
             NavigationItem(
                 icon = icon,
                 label = screen.route.replaceFirstChar { it.uppercase() },

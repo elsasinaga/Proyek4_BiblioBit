@@ -26,7 +26,6 @@ import com.example.bibliobit.data.model.Book
 import com.example.bibliobit.ui.components.Button1
 import com.example.bibliobit.ui.components.Button2
 import com.example.bibliobit.ui.theme.abu2
-import com.example.bibliobit.ui.theme.hijau1
 import com.example.bibliobit.ui.theme.hijau5
 import com.example.bibliobit.ui.theme.hitam
 
@@ -57,7 +56,10 @@ fun BookDetailScreen(
                 title = {
                     Text(
                         text = "Book Details",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 20.sp
+                        ),
                         color = hitam, // Warna hitam untuk "Book Details"
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center // Tulis di tengah
@@ -77,12 +79,13 @@ fun BookDetailScreen(
                 }
             )
         }
+        // Hapus bottomBar karena sudah ditangani di MainScreen.kt
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = 24.dp) // Padding kanan dan kiri 24.dp
                 .verticalScroll(rememberScrollState())
         ) {
             // Cover Buku
@@ -150,16 +153,16 @@ fun BookDetailScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Sumber (Goodreads) dan Ikon Share
+            // Publisher dan Ikon Share
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "Goodreads",
+                    text = book?.publisher ?: "Unknown", // Menggunakan field publisher dari model
                     style = MaterialTheme.typography.bodyLarge,
-                    color = hijau5 // Warna hijau5 untuk "Goodreads"
+                    color = hijau5 // Warna hijau5 untuk publisher
                 )
                 IconButton(onClick = { /* Tambahkan logika untuk share */ }) {
                     Icon(
@@ -171,6 +174,14 @@ fun BookDetailScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Sinopsis
+            Text(
+                text = "Sinopsis",
+                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                color = hitam // Warna hitam untuk "Sinopsis"
+            )
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Deskripsi
             Text(
@@ -195,6 +206,11 @@ fun BookDetailScreen(
             )
             Text(
                 text = "Genre: ${book?.genre ?: "Unknown"}",
+                style = MaterialTheme.typography.bodyLarge,
+                color = abu2
+            )
+            Text(
+                text = "Number of Pages: ${book?.pages ?: "Unknown"}",
                 style = MaterialTheme.typography.bodyLarge,
                 color = abu2
             )

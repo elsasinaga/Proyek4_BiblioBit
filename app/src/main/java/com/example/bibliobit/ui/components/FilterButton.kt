@@ -21,7 +21,6 @@ import com.example.bibliobit.ui.theme.BiblioBitTheme
 import com.example.bibliobit.ui.theme.Typography
 import com.example.bibliobit.ui.theme.hijau2
 import com.example.bibliobit.ui.theme.hijau5
-import com.example.bibliobit.ui.theme.putih
 
 sealed class FilterIcon {
     data class Vector(val imageVector: ImageVector) : FilterIcon()
@@ -52,12 +51,19 @@ fun FilterBar(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        filters.forEach { (status, icon) ->
+        filters.forEach { (filterKey, icon) ->
+            val displayText = when (filterKey) {
+                "all" -> "All"
+                "wishlist" -> "Wishlist"
+                "reading" -> "Reading"
+                "finish" -> "Finish"
+                else -> filterKey.replaceFirstChar { it.uppercase() }
+            }
             FilterButton(
-                text = status.replaceFirstChar { it.uppercase() },
+                text = displayText,
                 icon = icon,
-                isSelected = selectedFilter == status,
-                onClick = { onFilterSelected(status) }
+                isSelected = selectedFilter == filterKey,
+                onClick = { onFilterSelected(filterKey) }
             )
         }
     }

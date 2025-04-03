@@ -23,11 +23,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.bibliobit.data.model.Book
+import com.example.bibliobit.data.model.BookStatus
 import com.example.bibliobit.ui.components.Button1
 import com.example.bibliobit.ui.components.Button2
 import com.example.bibliobit.ui.theme.abu2
 import com.example.bibliobit.ui.theme.hijau5
 import com.example.bibliobit.ui.theme.hitam
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,8 +39,26 @@ fun BookDetailScreen(
     onNavigateBack: () -> Unit
 ) {
     val book by viewModel.getBookById(bookId).collectAsState(initial = null)
-    var isFavorite by remember { mutableStateOf(false) } // State untuk tombol favorit
-    var selectedStatus by remember { mutableStateOf("Plan to Read") } // State lokal untuk status
+    val userLibrary by viewModel.userLibrary.collectAsState()
+    var isFavorite by remember { mutableStateOf(false) }
+
+    // selectedStatus menggunakan BookStatus? (nullable), default null (tidak ada status)
+    var selectedStatus by remember { mutableStateOf<BookStatus?>(null) }
+
+    // Sinkronkan selectedStatus dengan userLibrary
+    LaunchedEffect(userLibrary) {
+        selectedStatus = userLibrary?.status // null jika buku belum ada di library
+    }
+
+    // Ambil userId dari FirebaseAuth
+    val userId = FirebaseAuth.getInstance().currentUser?.uid
+
+    // Load userLibrary saat screen dimuat
+    LaunchedEffect(userId, bookId) {
+        if (userId != null) {
+            viewModel.loadUserLibrary(userId, bookId)
+        }
+    }
 
     if (book == null) {
         Box(
@@ -60,9 +80,9 @@ fun BookDetailScreen(
                             fontWeight = FontWeight.Normal,
                             fontSize = 20.sp
                         ),
-                        color = hitam, // Warna hitam untuk "Book Details"
+                        color = hitam,
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center // Tulis di tengah
+                        textAlign = TextAlign.Center
                     )
                 },
                 navigationIcon = {
@@ -75,17 +95,16 @@ fun BookDetailScreen(
                     }
                 },
                 actions = {
-                    Spacer(modifier = Modifier.width(48.dp)) // Spacer untuk menyeimbangkan layout
+                    Spacer(modifier = Modifier.width(48.dp))
                 }
             )
         }
-        // Hapus bottomBar karena sudah ditangani di MainScreen.kt
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 24.dp) // Padding kanan dan kiri 24.dp
+                .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             // Cover Buku
@@ -130,7 +149,7 @@ fun BookDetailScreen(
                 Text(
                     text = book?.title ?: "Unknown Title",
                     style = MaterialTheme.typography.titleLarge,
-                    color = hitam, // Warna hitam untuk judul
+                    color = hitam,
                     modifier = Modifier.weight(1f)
                 )
                 Row {
@@ -160,9 +179,9 @@ fun BookDetailScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = book?.publisher ?: "Unknown", // Menggunakan field publisher dari model
+                    text = book?.publisher ?: "Unknown",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = hijau5 // Warna hijau5 untuk publisher
+                    color = hijau5
                 )
                 IconButton(onClick = { /* Tambahkan logika untuk share */ }) {
                     Icon(
@@ -179,7 +198,7 @@ fun BookDetailScreen(
             Text(
                 text = "Sinopsis",
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                color = hitam // Warna hitam untuk "Sinopsis"
+                color = hitam
             )
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -187,22 +206,22 @@ fun BookDetailScreen(
             Text(
                 text = book?.description ?: "No description available.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = abu2 // Warna abu-abu terang untuk deskripsi
+                color = abu2
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Informasi Buku (Hanya menampilkan field yang ada di model)
+            // Informasi Buku
             Text(
                 text = "Book Info",
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                color = hitam // Warna hitam untuk "Book Info"
+                color = hitam
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Authors: ${book?.author ?: "Unknown"}",
                 style = MaterialTheme.typography.bodyLarge,
-                color = abu2 // Warna abu-abu terang untuk informasi
+                color = abu2
             )
             Text(
                 text = "Genre: ${book?.genre ?: "Unknown"}",
@@ -239,9 +258,18 @@ fun BookDetailScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // Tombol "Plan to Read"
-                if (selectedStatus == "Plan to Read") {
+                if (selectedStatus == BookStatus.PLAN_TO_READ) {
                     Button1(
-                        onClick = { selectedStatus = "Plan to Read" },
+                        onClick = {
+                            selectedStatus = BookStatus.PLAN_TO_READ
+                            if (userId != null) {
+                                viewModel.updateBookStatus(
+                                    userId = userId,
+                                    bookId = bookId,
+                                    status = BookStatus.PLAN_TO_READ
+                                )
+                            }
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(40.dp),
@@ -254,7 +282,16 @@ fun BookDetailScreen(
                     }
                 } else {
                     Button2(
-                        onClick = { selectedStatus = "Plan to Read" },
+                        onClick = {
+                            selectedStatus = BookStatus.PLAN_TO_READ
+                            if (userId != null) {
+                                viewModel.updateBookStatus(
+                                    userId = userId,
+                                    bookId = bookId,
+                                    status = BookStatus.PLAN_TO_READ
+                                )
+                            }
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(40.dp),
@@ -268,9 +305,19 @@ fun BookDetailScreen(
                 }
 
                 // Tombol "Reading"
-                if (selectedStatus == "Reading") {
+                if (selectedStatus == BookStatus.READING) {
                     Button1(
-                        onClick = { selectedStatus = "Reading" },
+                        onClick = {
+                            selectedStatus = BookStatus.READING
+                            if (userId != null) {
+                                viewModel.updateBookStatus(
+                                    userId = userId,
+                                    bookId = bookId,
+                                    status = BookStatus.READING,
+                                    lastPageRead = userLibrary?.lastPageRead ?: 0
+                                )
+                            }
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(40.dp),
@@ -283,7 +330,17 @@ fun BookDetailScreen(
                     }
                 } else {
                     Button2(
-                        onClick = { selectedStatus = "Reading" },
+                        onClick = {
+                            selectedStatus = BookStatus.READING
+                            if (userId != null) {
+                                viewModel.updateBookStatus(
+                                    userId = userId,
+                                    bookId = bookId,
+                                    status = BookStatus.READING,
+                                    lastPageRead = userLibrary?.lastPageRead ?: 0
+                                )
+                            }
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(40.dp),
@@ -297,9 +354,19 @@ fun BookDetailScreen(
                 }
 
                 // Tombol "Finish"
-                if (selectedStatus == "Finish") {
+                if (selectedStatus == BookStatus.FINISH) {
                     Button1(
-                        onClick = { selectedStatus = "Finish" },
+                        onClick = {
+                            selectedStatus = BookStatus.FINISH
+                            if (userId != null) {
+                                viewModel.updateBookStatus(
+                                    userId = userId,
+                                    bookId = bookId,
+                                    status = BookStatus.FINISH,
+                                    rating = userLibrary?.rating ?: 0f
+                                )
+                            }
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(40.dp),
@@ -312,7 +379,17 @@ fun BookDetailScreen(
                     }
                 } else {
                     Button2(
-                        onClick = { selectedStatus = "Finish" },
+                        onClick = {
+                            selectedStatus = BookStatus.FINISH
+                            if (userId != null) {
+                                viewModel.updateBookStatus(
+                                    userId = userId,
+                                    bookId = bookId,
+                                    status = BookStatus.FINISH,
+                                    rating = userLibrary?.rating ?: 0f
+                                )
+                            }
+                        },
                         modifier = Modifier
                             .weight(1f)
                             .height(40.dp),

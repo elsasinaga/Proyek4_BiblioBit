@@ -15,12 +15,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.example.bibliobit.data.model.BookStatus
 import com.example.bibliobit.ui.components.FilterBar
 import com.example.bibliobit.ui.components.FinishBookItem
 import com.example.bibliobit.ui.components.ReadingBookItem
 import com.example.bibliobit.ui.components.WishlistBookItem
 import com.example.bibliobit.ui.navigation.Screen
 import com.example.bibliobit.ui.theme.Typography
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun LibraryScreen(
@@ -30,6 +32,14 @@ fun LibraryScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("all") }
+
+    // Ambil userId dari FirebaseAuth
+    LaunchedEffect(Unit) {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId != null) {
+            viewModel.setUserId(userId)
+        }
+    }
 
     // Ambil data dari ViewModel
     val libraryItems by viewModel.libraryItems.collectAsState(initial = emptyList())
@@ -94,23 +104,23 @@ fun LibraryScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(libraryItems) { libraryItem ->
+                items(libraryItems) { (book, userLibrary) ->
                     Box(
                         modifier = Modifier
                             .clickable {
-                                navController.navigate(Screen.BookDetail.createRoute(libraryItem.book.id))
+                                navController.navigate(Screen.BookDetail.createRoute(book.id))
                             }
                     ) {
-                        when (libraryItem.status) {
-                            "wishlist" -> WishlistBookItem(book = libraryItem.book)
-                            "reading" -> ReadingBookItem(
-                                book = libraryItem.book,
-                                lastPageRead = libraryItem.lastPageRead ?: 0,
-                                totalPages = libraryItem.book.pages ?: 300 // Gunakan pages dari Book, fallback ke 300 jika null
+                        when (userLibrary.status) { // Gunakan BookStatus langsung
+                            BookStatus.PLAN_TO_READ -> WishlistBookItem(book = book)
+                            BookStatus.READING -> ReadingBookItem(
+                                book = book,
+                                lastPageRead = userLibrary.lastPageRead ?: 0,
+                                totalPages = book.pages ?: 300
                             )
-                            "finish" -> FinishBookItem(
-                                book = libraryItem.book,
-                                rating = libraryItem.rating ?: 0f
+                            BookStatus.FINISH -> FinishBookItem(
+                                book = book,
+                                rating = userLibrary.rating ?: 0f
                             )
                         }
                     }

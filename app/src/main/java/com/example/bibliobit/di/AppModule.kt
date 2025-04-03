@@ -8,6 +8,8 @@ import com.example.bibliobit.data.repository.UserDao
 import com.example.bibliobit.data.repository.AuthRepository
 import com.example.bibliobit.data.repository.AuthRepositoryImpl
 import com.example.bibliobit.data.repository.BookRepository
+import com.example.bibliobit.data.repository.UserLibraryDao
+import com.example.bibliobit.data.repository.UserLibraryRepository
 import com.example.bibliobit.utils.PreferencesManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -73,5 +75,17 @@ object AppModule {
     @Singleton
     fun provideBookRepository(bookDao: BookDao): BookRepository {
         return BookRepository(bookDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserLibraryDao(appDatabase: AppDatabase): UserLibraryDao {
+        return appDatabase.userLibraryDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserLibraryRepository(userLibraryDao: UserLibraryDao): UserLibraryRepository {
+        return UserLibraryRepository(userLibraryDao)
     }
 }

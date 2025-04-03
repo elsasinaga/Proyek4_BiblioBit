@@ -18,4 +18,8 @@ class BookRepository @Inject constructor(
     fun getBookById(bookId: Long): Flow<Book?> {
         return bookDao.getBookById(bookId)
     }
+
+    fun searchBooks(query: String): Flow<List<Book>> {
+        return bookDao.searchBooks(query)
+    }
 }

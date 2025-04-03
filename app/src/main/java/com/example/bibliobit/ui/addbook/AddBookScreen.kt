@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,6 +46,8 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.example.bibliobit.ui.theme.hijau4
+import com.example.bibliobit.ui.theme.hitam
 
 @Composable
 fun AddBookScreen(
@@ -53,7 +56,7 @@ fun AddBookScreen(
     viewModel: AddBookViewModel
 ) {
     var showAddBookDialog by remember { mutableStateOf(false) }
-    var searchQuery by remember { mutableStateOf("") }
+    val searchQuery by viewModel.searchQuery.collectAsState()
     val books by viewModel.books.collectAsState(initial = emptyList())
     val context = LocalContext.current
 
@@ -70,15 +73,20 @@ fun AddBookScreen(
         ) {
             OutlinedTextField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it },
+                onValueChange = { query ->
+                    viewModel.updateSearchQuery(query) // Perbarui query di ViewModel
+                },
                 modifier = Modifier
                     .weight(1f)
-                    .padding(end = 8.dp),
+                    .padding(end = 8.dp)
+                    .padding(horizontal = 2.dp)
+                    .padding(top = 3.dp),
                 placeholder = { Text("Search books...") },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
-                        contentDescription = "Search Icon"
+                        contentDescription = "Search Icon",
+                        tint = hijau4
                     )
                 },
                 shape = RoundedCornerShape(12.dp)
@@ -91,7 +99,7 @@ fun AddBookScreen(
                 Icon(
                     painter = painterResource(id = R.drawable.barcode_scanner),
                     contentDescription = "Scan Book",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = hijau4
                 )
             }
 
@@ -101,7 +109,7 @@ fun AddBookScreen(
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add Book Manually",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = hijau4
                 )
             }
         }
@@ -116,7 +124,7 @@ fun AddBookScreen(
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -210,7 +218,10 @@ fun BookItem(
 
         Text(
             text = book.title,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontWeight = FontWeight.Bold,
+                color = hitam,
+            ),
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Start,
             maxLines = 2,
@@ -221,8 +232,10 @@ fun BookItem(
 
         Text(
             text = book.author,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontWeight = FontWeight.Bold,
+                color = hijau4,
+            ),
             textAlign = TextAlign.Start,
             maxLines = 1,
             modifier = Modifier.fillMaxWidth()

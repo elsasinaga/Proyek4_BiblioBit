@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,6 +34,8 @@ import com.example.bibliobit.ui.register.RegisterScreen
 import com.example.bibliobit.ui.register.RegisterViewModel
 import com.example.bibliobit.utils.PreferencesManager
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
@@ -57,9 +60,21 @@ fun AppNavHost(
 ) {
     val auth = FirebaseAuth.getInstance()
 
+    // Ambil status onboarding secara sinkronus menggunakan runBlocking
+    val isOnboardingCompleted = runBlocking {
+        preferencesManager.isOnboardingCompletedFlow.first()
+    }
+
+    // Tentukan startDestination berdasarkan status login dan onboarding
+    val startDestination = when {
+        auth.currentUser != null && isOnboardingCompleted -> Screen.Home.route
+        isOnboardingCompleted -> Screen.Login.route
+        else -> Screen.Onboarding.route
+    }
+
     NavHost(
         navController = navController,
-        startDestination = Screen.Onboarding.route,
+        startDestination = startDestination,
         modifier = modifier
     ) {
         composable(Screen.Onboarding.route) {

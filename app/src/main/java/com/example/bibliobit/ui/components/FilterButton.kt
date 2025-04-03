@@ -1,6 +1,5 @@
 package com.example.bibliobit.ui.components
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,20 +10,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.bibliobit.R
 import com.example.bibliobit.ui.theme.BiblioBitTheme
-import com.example.bibliobit.ui.theme.Typography
 import com.example.bibliobit.ui.theme.hijau2
 import com.example.bibliobit.ui.theme.hijau5
+import com.example.bibliobit.ui.theme.Typography
 
 sealed class FilterIcon {
-    data class Vector(val imageVector: ImageVector) : FilterIcon()
-    data class Drawable(@DrawableRes val resId: Int) : FilterIcon()
+    data class Drawable(val resId: Int) : FilterIcon()
 }
 
 @Composable
@@ -88,14 +85,6 @@ fun FilterButton(
         verticalAlignment = Alignment.CenterVertically
     ) {
         when (icon) {
-            is FilterIcon.Vector -> {
-                Icon(
-                    imageVector = icon.imageVector,
-                    contentDescription = text,
-                    tint = if (isSelected) hijau2 else hijau5,
-                    modifier = Modifier.size(20.dp) // Ukuran ikon seimbang
-                )
-            }
             is FilterIcon.Drawable -> {
                 Icon(
                     painter = painterResource(id = icon.resId),

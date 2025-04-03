@@ -5,7 +5,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -16,12 +15,18 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
+import com.example.bibliobit.ui.components.Button1
+import com.example.bibliobit.ui.theme.abu1
+import com.example.bibliobit.ui.theme.abu2
+import com.example.bibliobit.ui.theme.abu3
+import com.example.bibliobit.ui.theme.merah
+import com.example.bibliobit.ui.theme.putih
 import java.io.File
 
 @Composable
@@ -78,8 +83,7 @@ fun ProfileScreen(
             Box(
                 modifier = Modifier
                     .size(120.dp)
-                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
-                    .background(Color.LightGray, CircleShape),
+                    .background(putih, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 if (profileImagePath.isNotEmpty()) {
@@ -88,29 +92,30 @@ fun ProfileScreen(
                         contentDescription = "Profile Picture",
                         modifier = Modifier
                             .size(120.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, Color.Gray, CircleShape),
+                            .clip(CircleShape),
                         contentScale = ContentScale.Crop
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "Default Profile Picture",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(80.dp)
+                        tint = abu1,
+                        modifier = Modifier.size(50.dp)
                     )
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = { imagePickerLauncher.launch("image/*") },
-                modifier = Modifier.padding(8.dp)
-            ) {
-                Text("Upload Photo")
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-
             if (isEditing) {
+                Button1(
+                    onClick = { imagePickerLauncher.launch("image/*") },
+                    modifier = Modifier.fillMaxWidth(0.35f),
+                ) {
+                    Text(
+                        text = "Upload Photo",
+                        style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -133,36 +138,47 @@ fun ProfileScreen(
                     enabled = false
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(
+                Button1(
                     onClick = {
                         viewModel.upsertProfile(name, username)
                         isEditing = false
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(0.3f)
                 ) {
-                    Text("Save")
+                    Text(
+                        text = "Save",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleSmall
+                    )
                 }
             } else {
-                Text(text = "Name: $name", style = MaterialTheme.typography.bodyLarge)
-                Text(text = "Username: $username", style = MaterialTheme.typography.bodyMedium)
-                Text(text = "Email: $email", style = MaterialTheme.typography.bodyMedium)
+                Text(text = name, style = MaterialTheme.typography.titleLarge, color = abu3)
+//                Text(text = username, style = MaterialTheme.typography.bodyLarge)
+                Text(text = email, style = MaterialTheme.typography.bodyLarge, color = abu2)
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(
+                Button1(
                     onClick = { isEditing = true },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(0.35f)
                 ) {
-                    Text("Edit Profile")
+                    Text(
+                        text = "Edit Profile",
+                        style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold
+                    )
                 }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = {
-                    viewModel.logout()
-                    onNavigateToLogin()
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Logout")
+                Spacer(modifier = Modifier.height(16.dp))
+                Button1(
+                    onClick = {
+                        viewModel.logout()
+                        onNavigateToLogin()
+                    },
+                    modifier = Modifier.fillMaxWidth(0.3f),
+                    backgroundColor = merah
+                ) {
+                    Text(
+                        text = "Logout",
+                        style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }

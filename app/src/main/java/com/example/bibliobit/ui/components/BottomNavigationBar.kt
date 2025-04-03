@@ -2,17 +2,9 @@ package com.example.bibliobit.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -23,16 +15,25 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
+import com.example.bibliobit.R
 import com.example.bibliobit.ui.navigation.Screen
-import com.example.bibliobit.ui.theme.abu1
-import com.example.bibliobit.ui.theme.abu2
 import com.example.bibliobit.ui.theme.abu3
 import com.example.bibliobit.ui.theme.hijau5
 import com.example.bibliobit.ui.theme.putih
+
+// Sealed class untuk merepresentasikan dua jenis ikon
+sealed class IconType {
+    data class Vector(val imageVector: ImageVector) : IconType()
+    data class Drawable(val resId: Int) : IconType()
+}
 
 @Composable
 fun BottomNavigationBar(
@@ -40,11 +41,11 @@ fun BottomNavigationBar(
     currentRoute: String?
 ) {
     val items = listOf(
-        Screen.Home to Icons.Default.Home,
-        Screen.Add to Icons.Default.Add,
-        Screen.Statistic to Icons.Default.Star,
-        Screen.Library to Icons.Default.AccountBox,
-        Screen.Profile to Icons.Default.Person
+        Screen.Home to IconType.Vector(Icons.Default.Home),
+        Screen.Add to IconType.Vector(Icons.Default.Add),
+        Screen.Statistic to IconType.Drawable(R.drawable.chart),
+        Screen.Library to IconType.Drawable(R.drawable.open_book), // Gunakan PNG untuk Library
+        Screen.Profile to IconType.Vector(Icons.Default.Person)
     )
 
     // Warna untuk navigation bar
@@ -62,10 +63,10 @@ fun BottomNavigationBar(
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        items.forEach { (screen, icon) ->
+        items.forEach { (screen, iconType) ->
             val isSelected = currentRoute == screen.route
             NavigationItem(
-                icon = icon,
+                iconType = iconType,
                 label = screen.route.replaceFirstChar { it.uppercase() },
                 isSelected = isSelected,
                 activeColor = activeColor,
@@ -83,7 +84,7 @@ fun BottomNavigationBar(
 
 @Composable
 fun NavigationItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconType: IconType, // Ubah parameter untuk menerima IconType
     label: String,
     isSelected: Boolean,
     activeColor: androidx.compose.ui.graphics.Color,
@@ -98,12 +99,24 @@ fun NavigationItem(
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = if (isSelected) activeColor else inactiveColor,
-            modifier = Modifier.size(24.dp)
-        )
+        when (iconType) {
+            is IconType.Vector -> {
+                Icon(
+                    imageVector = iconType.imageVector,
+                    contentDescription = label,
+                    tint = if (isSelected) activeColor else inactiveColor,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            is IconType.Drawable -> {
+                Icon(
+                    painter = painterResource(id = iconType.resId),
+                    contentDescription = label,
+                    tint = if (isSelected) activeColor else inactiveColor,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
         if (isSelected) {
             Spacer(modifier = Modifier.width(8.dp))
             Text(
@@ -114,4 +127,11 @@ fun NavigationItem(
             )
         }
     }
+}
+
+@Composable
+@Preview
+fun BottomNavigationBarPreview() {
+    val navController = rememberNavController()
+    BottomNavigationBar(navController = navController, currentRoute = "library")
 }

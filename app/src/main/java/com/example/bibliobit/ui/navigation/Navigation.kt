@@ -26,6 +26,8 @@ import com.example.bibliobit.ui.bookdetail.BookDetailScreen
 import com.example.bibliobit.ui.bookdetail.BookDetailViewModel
 import com.example.bibliobit.ui.forgotpassword.ForgotPasswordScreen
 import com.example.bibliobit.ui.forgotpassword.ForgotPasswordViewModel
+import com.example.bibliobit.ui.library.LibraryScreen
+import com.example.bibliobit.ui.library.LibraryViewModel
 import com.example.bibliobit.ui.login.LoginScreen
 import com.example.bibliobit.ui.login.LoginViewModel
 import com.example.bibliobit.ui.onboarding.OnboardingScreen
@@ -177,13 +179,11 @@ fun AppNavHost(
         }
 
         composable(Screen.Library.route) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = "Book Screen")
-            }
+            val viewModel: LibraryViewModel = hiltViewModel()
+            LibraryScreen(
+                navController = navController,
+                viewModel = viewModel
+            )
         }
 
         composable(Screen.Profile.route) {

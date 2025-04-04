@@ -5,7 +5,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.bibliobit.data.model.LocalUser
+import com.example.bibliobit.data.repository.UserDao
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -13,7 +16,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
-    private val auth: FirebaseAuth // Injeksi FirebaseAuth menggunakan Hilt
+    private val auth: FirebaseAuth, // Injeksi FirebaseAuth menggunakan Hilt
+    private val userDao: UserDao, // Tambahkan injeksi UserDao
+    private val firestore: FirebaseFirestore // Tambahkan injeksi Firestore
 ) : ViewModel() {
     var email by mutableStateOf("")
         private set
@@ -79,9 +84,24 @@ class LoginViewModel @Inject constructor(
 
                 // Autentikasi menggunakan Firebase
                 val result = auth.signInWithEmailAndPassword(email, password).await()
-                if (result.user != null) {
+                result.user?.let { firebaseUser ->
+                    // Ambil data pengguna dari Firestore
+                    val userDoc = firestore.collection("users").document(firebaseUser.uid).get().await()
+                    val username = userDoc.getString("username") ?: ""
+                    val name = userDoc.getString("name") ?: ""
+                    val profileImage = userDoc.getString("profileImage")
+
+                    val localUser = LocalUser(
+                        uid = firebaseUser.uid,
+                        email = firebaseUser.email ?: "",
+                        username = username,
+                        name = name,
+                        profileImage = profileImage,
+                        isSynced = true
+                    )
+                    userDao.upsert(localUser)
                     onLoginSuccess()
-                } else {
+                } ?: run {
                     errorMessage = "Email atau password tidak sesuai"
                 }
             } catch (e: Exception) {

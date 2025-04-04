@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface BookDao {
     @Insert
-    suspend fun insertBook(book: Book)
+    suspend fun insertBook(book: Book): Long // Mengembalikan ID yang baru disisipkan
 
     @Query("SELECT * FROM books")
     fun getAllBooks(): Flow<List<Book>>

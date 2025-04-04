@@ -41,6 +41,12 @@ fun LibraryScreen(
         }
     }
 
+    // Gunakan LaunchedEffect untuk mengontrol pemanggilan filter dan search
+    LaunchedEffect(selectedFilter, searchQuery) {
+        viewModel.setFilter(selectedFilter)
+        viewModel.setSearchQuery(searchQuery)
+    }
+
     // Ambil data dari ViewModel
     val libraryItems by viewModel.libraryItems.collectAsState(initial = emptyList())
 

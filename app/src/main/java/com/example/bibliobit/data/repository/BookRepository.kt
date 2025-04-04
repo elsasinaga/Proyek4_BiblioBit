@@ -7,8 +7,8 @@ import javax.inject.Inject
 class BookRepository @Inject constructor(
     private val bookDao: BookDao
 ) {
-    suspend fun insertBook(book: Book) {
-        bookDao.insertBook(book)
+    suspend fun insertBook(book: Book): Long {
+        return bookDao.insertBook(book)
     }
 
     fun getAllBooks(): Flow<List<Book>> {

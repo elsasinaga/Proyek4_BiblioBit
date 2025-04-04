@@ -14,8 +14,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.coroutines.cancellation.CancellationException
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
@@ -49,9 +51,11 @@ class LibraryViewModel @Inject constructor(
         viewModelScope.launch {
             val userId = _userId.value ?: return@launch
             try {
-                Log.d("LibraryViewModel", "Loading library items for userId=$userId, filter=${_filter.value}, query=${_searchQuery.value}")
+                Log.d(
+                    "LibraryViewModel",
+                    "Loading library items for userId=$userId, filter=${_filter.value}, query=${_searchQuery.value}"
+                )
 
-                // Ambil data berdasarkan filter dan search query
                 val libraryFlow = when (_filter.value) {
                     "all" -> {
                         if (_searchQuery.value.isEmpty()) {
@@ -60,14 +64,19 @@ class LibraryViewModel @Inject constructor(
                             userLibraryRepository.searchUserLibrary(userId, _searchQuery.value)
                         }
                     }
-                    "wishlist" -> { // Ubah dari "plan to read" ke "wishlist"
+
+                    "wishlist" -> {
                         if (_searchQuery.value.isEmpty()) {
-                            userLibraryRepository.getUserLibraryByStatus(userId, BookStatus.PLAN_TO_READ)
+                            userLibraryRepository.getUserLibraryByStatus(
+                                userId,
+                                BookStatus.PLAN_TO_READ
+                            )
                         } else {
                             userLibraryRepository.searchUserLibrary(userId, _searchQuery.value)
                                 .map { items -> items.filter { it.status == BookStatus.PLAN_TO_READ } }
                         }
                     }
+
                     "reading" -> {
                         if (_searchQuery.value.isEmpty()) {
                             userLibraryRepository.getUserLibraryByStatus(userId, BookStatus.READING)
@@ -76,6 +85,7 @@ class LibraryViewModel @Inject constructor(
                                 .map { items -> items.filter { it.status == BookStatus.READING } }
                         }
                     }
+
                     "finish" -> {
                         if (_searchQuery.value.isEmpty()) {
                             userLibraryRepository.getUserLibraryByStatus(userId, BookStatus.FINISH)
@@ -84,24 +94,29 @@ class LibraryViewModel @Inject constructor(
                                 .map { items -> items.filter { it.status == BookStatus.FINISH } }
                         }
                     }
+
                     else -> userLibraryRepository.getUserLibrary(userId)
                 }
 
-                // Kombinasikan UserLibrary dengan Book
                 libraryFlow
                     .map { userLibraryList ->
                         userLibraryList.mapNotNull { userLibrary ->
-                            // Ambil Book dari Flow menggunakan firstOrNull()
                             val book = bookRepository.getBookById(userLibrary.bookId).firstOrNull()
                             book?.let { Pair(it, userLibrary) }
                         }
                     }
                     .collect { items ->
-                        _libraryItems.value = items
-                        Log.d("LibraryViewModel", "Loaded ${items.size} library items")
+                        if (isActive) { // Pastikan coroutine masih aktif
+                            _libraryItems.value = items
+                            Log.d("LibraryViewModel", "Loaded ${items.size} library items")
+                        }
                     }
             } catch (e: Exception) {
-                Log.e("LibraryViewModel", "Error loading library items: ${e.message}", e)
+                if (e is CancellationException) {
+                    Log.d("LibraryViewModel", "Loading cancelled, ignoring")
+                } else {
+                    Log.e("LibraryViewModel", "Error loading library items: ${e.message}", e)
+                }
             }
         }
     }

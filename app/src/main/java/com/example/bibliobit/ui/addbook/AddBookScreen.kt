@@ -48,6 +48,7 @@ import java.util.Date
 import java.util.Locale
 import com.example.bibliobit.ui.theme.hijau4
 import com.example.bibliobit.ui.theme.hitam
+import kotlinx.coroutines.withContext
 
 @Composable
 fun AddBookScreen(
@@ -164,7 +165,13 @@ fun AddBookScreen(
 
                 // Simpan ke database di background thread
                 CoroutineScope(Dispatchers.IO).launch {
-                    viewModel.insertBook(book)
+                    // Sisipkan buku dan dapatkan ID-nya
+                    val insertedBookId = viewModel.insertBookAndGetId(book)
+                    withContext(Dispatchers.Main) {
+                        // Navigasi ke BookDetailScreen dengan bookId yang baru
+                        navController.navigate(Screen.BookDetail.createRoute(insertedBookId))
+                        showAddBookDialog = false
+                    }
                 }
 
                 showAddBookDialog = false

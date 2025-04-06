@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,6 +33,7 @@ fun LibraryScreen(
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("all") }
+    var isDeleteMode by remember { mutableStateOf(false) }
 
     // Ambil userId dari FirebaseAuth
     LaunchedEffect(Unit) {
@@ -70,26 +72,45 @@ fun LibraryScreen(
                 .padding(bottom = 16.dp)
         )
 
-        // Search Bar
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = {
-                searchQuery = it
-                viewModel.setSearchQuery(it)
-            },
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .padding(bottom = 16.dp),
-            placeholder = { Text("Search books...", style = Typography.bodyLarge) },
-            leadingIcon = {
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = {
+                    searchQuery = it
+                    viewModel.setSearchQuery(it)
+                },
+                modifier = Modifier
+                    .weight(1f), // Mengambil sisa ruang
+                placeholder = { Text("Search books...", style = Typography.bodyLarge) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search Icon"
+                    )
+                },
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            // Tombol Hapus di Samping Search Bar
+            IconButton(
+                onClick = { isDeleteMode = !isDeleteMode },
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .size(48.dp)
+            ) {
                 Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search Icon"
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = if (isDeleteMode) "Cancel Delete Mode" else "Enter Delete Mode",
+                    tint = if (isDeleteMode) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                 )
-            },
-            shape = RoundedCornerShape(12.dp)
-        )
+            }
+        }
 
         // Book List
         if (libraryItems.isEmpty()) {
@@ -125,15 +146,22 @@ fun LibraryScreen(
                             }
                     ) {
                         when (userLibrary.status) {
-                            BookStatus.PLAN_TO_READ -> WishlistBookItem(book = book)
+                            BookStatus.PLAN_TO_READ -> WishlistBookItem(
+                                book = book,
+                                showDeleteButton = isDeleteMode,
+                                onDelete = { viewModel.deleteBookFromLibrary(book.id) })
                             BookStatus.READING -> ReadingBookItem(
                                 book = book,
                                 lastPageRead = userLibrary.lastPageRead ?: 0,
-                                totalPages = book.pages ?: 300
+                                totalPages = book.pages ?: 300,
+                                showDeleteButton = isDeleteMode,
+                                onDelete = { viewModel.deleteBookFromLibrary(book.id) }
                             )
                             BookStatus.FINISH -> FinishBookItem(
                                 book = book,
-                                rating = userLibrary.rating ?: 0f
+                                rating = userLibrary.rating ?: 0f,
+                                showDeleteButton = isDeleteMode,
+                                onDelete = { viewModel.deleteBookFromLibrary(book.id) }
                             )
                         }
                     }

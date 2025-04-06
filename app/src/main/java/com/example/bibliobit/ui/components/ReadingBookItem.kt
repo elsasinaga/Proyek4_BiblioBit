@@ -3,6 +3,10 @@ package com.example.bibliobit.ui.components
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -26,6 +30,8 @@ fun ReadingBookItem(
     book: Book,
     lastPageRead: Int,
     totalPages: Int = 300, // Asumsi total halaman
+    showDeleteButton: Boolean = false,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -92,6 +98,18 @@ fun ReadingBookItem(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
             modifier = Modifier.padding(top = 2.dp)
         )
+        if (showDeleteButton) {
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete Book",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
     }
 }
 
@@ -111,7 +129,9 @@ fun ReadingBookItemPreview() {
                 coverPhotoPath = null,
                 publisher = null
             ),
-            lastPageRead = 150
+            lastPageRead = 150,
+            showDeleteButton = true,
+            onDelete = {}
         )
     }
 }

@@ -3,6 +3,10 @@ package com.example.bibliobit.ui.components
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -23,6 +27,8 @@ import java.io.File
 @Composable
 fun WishlistBookItem(
     book: Book,
+    showDeleteButton: Boolean = false,
+    onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -83,6 +89,18 @@ fun WishlistBookItem(
                 .fillMaxWidth()
                 .padding(top = 4.dp)
         )
+        if (showDeleteButton) {
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.padding(top = 4.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete Book",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
     }
 }
 
@@ -101,7 +119,8 @@ fun WishlistBookItemPreview() {
                 isbn = null,
                 coverPhotoPath = null,
                 publisher = null
-            )
+            ),
+            onDelete = {}
         )
     }
 }

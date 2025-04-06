@@ -47,6 +47,20 @@ class LibraryViewModel @Inject constructor(
         loadLibraryItems()
     }
 
+    fun deleteBookFromLibrary(bookId: Long) {
+        viewModelScope.launch {
+            val userId = _userId.value ?: return@launch
+            try {
+                userLibraryRepository.deleteUserLibrary(userId, bookId)
+                Log.d("LibraryViewModel", "Book with ID $bookId deleted from library for user $userId")
+                // Reload library items setelah penghapusan
+                loadLibraryItems()
+            } catch (e: Exception) {
+                Log.e("LibraryViewModel", "Error deleting book from library: ${e.message}", e)
+            }
+        }
+    }
+
     private fun loadLibraryItems() {
         viewModelScope.launch {
             val userId = _userId.value ?: return@launch

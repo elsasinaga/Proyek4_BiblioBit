@@ -36,4 +36,8 @@ class UserLibraryRepository @Inject constructor(
     suspend fun getUserLibraryById(id: Long): UserLibrary? {
         return userLibraryDao.getUserLibraryById(id)
     }
+
+    suspend fun deleteUserLibrary(userId: String, bookId: Long) {
+        userLibraryDao.deleteUserLibrary(userId, bookId)
+    }
 }

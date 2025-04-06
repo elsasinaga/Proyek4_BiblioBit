@@ -33,4 +33,7 @@ interface UserLibraryDao {
     // Tambahkan metode untuk mengambil UserLibrary berdasarkan id
     @Query("SELECT * FROM user_library WHERE id = :id LIMIT 1")
     suspend fun getUserLibraryById(id: Long): UserLibrary?
+
+    @Query("DELETE FROM user_library WHERE userId = :userId AND bookId = :bookId")
+    suspend fun deleteUserLibrary(userId: String, bookId: Long)
 }

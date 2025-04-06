@@ -34,6 +34,10 @@ import com.example.bibliobit.ui.onboarding.OnboardingScreen
 import com.example.bibliobit.ui.profile.ProfileScreen
 import com.example.bibliobit.ui.register.RegisterScreen
 import com.example.bibliobit.ui.register.RegisterViewModel
+import com.example.bibliobit.ui.readingprogress.AddReadingProgressScreen
+import com.example.bibliobit.ui.readingprogress.ReadingProgressViewModel
+import com.example.bibliobit.ui.readingprogress.YourProgressReadingScreen
+import com.example.bibliobit.ui.readingprogress.YourReadingBookScreen
 import com.example.bibliobit.utils.PreferencesManager
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.first
@@ -52,6 +56,17 @@ sealed class Screen(val route: String) {
     object BookDetail : Screen("book_detail/{bookId}") {
         fun createRoute(bookId: Long) = "book_detail/$bookId"
     }
+    object YourReadingBook : Screen("your_reading_book/{userId}/{bookId}") {
+        fun createRoute(userId: String, bookId: Long) = "your_reading_book/$userId/$bookId"
+    }
+    object AddReadingProgress : Screen("add_reading_progress/{userLibraryId}/{bookTitle}/{totalPages}/{userId}/{bookId}") {
+        fun createRoute(userLibraryId: Long, bookTitle: String, totalPages: Int, userId: String, bookId: Long) =
+            "add_reading_progress/$userLibraryId/$bookTitle/$totalPages/$userId/$bookId"
+    }
+    object YourProgressReading : Screen("your_progress_reading/{userLibraryId}/{bookTitle}/{totalPages}") {
+        fun createRoute(userLibraryId: Long, bookTitle: String, totalPages: Int) =
+            "your_progress_reading/$userLibraryId/$bookTitle/$totalPages"
+    }
 }
 
 @Composable
@@ -62,12 +77,10 @@ fun AppNavHost(
 ) {
     val auth = FirebaseAuth.getInstance()
 
-    // Ambil status onboarding secara sinkronus menggunakan runBlocking
     val isOnboardingCompleted = runBlocking {
         preferencesManager.isOnboardingCompletedFlow.first()
     }
 
-    // Tentukan startDestination berdasarkan status login dan onboarding
     val startDestination = when {
         auth.currentUser != null && isOnboardingCompleted -> Screen.Home.route
         isOnboardingCompleted -> Screen.Login.route
@@ -163,6 +176,95 @@ fun AppNavHost(
             val viewModel: BookDetailViewModel = hiltViewModel()
             BookDetailScreen(
                 bookId = bookId,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.YourReadingBook.route,
+            arguments = listOf(
+                navArgument("userId") { type = androidx.navigation.NavType.StringType },
+                navArgument("bookId") { type = androidx.navigation.NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val viewModel: ReadingProgressViewModel = hiltViewModel()
+            YourReadingBookScreen(
+                userId = userId,
+                bookId = bookId,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() },
+                onNavigateToAddProgress = { userLibraryId, bookTitle, totalPages, uid, bid ->
+                    navController.navigate(
+                        Screen.AddReadingProgress.createRoute(
+                            userLibraryId = userLibraryId,
+                            bookTitle = bookTitle,
+                            totalPages = totalPages,
+                            userId = uid,
+                            bookId = bid
+                        )
+                    )
+                },
+                onNavigateToSeeProgress = { userLibraryId ->
+                    val book = viewModel.book.value
+                    if (book != null) {
+                        navController.navigate(
+                            Screen.YourProgressReading.createRoute(
+                                userLibraryId = userLibraryId,
+                                bookTitle = book.title,
+                                totalPages = book.pages ?: 0
+                            )
+                        )
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = Screen.AddReadingProgress.route,
+            arguments = listOf(
+                navArgument("userLibraryId") { type = androidx.navigation.NavType.LongType },
+                navArgument("bookTitle") { type = androidx.navigation.NavType.StringType },
+                navArgument("totalPages") { type = androidx.navigation.NavType.IntType },
+                navArgument("userId") { type = androidx.navigation.NavType.StringType },
+                navArgument("bookId") { type = androidx.navigation.NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val userLibraryId = backStackEntry.arguments?.getLong("userLibraryId") ?: 0L
+            val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: ""
+            val totalPages = backStackEntry.arguments?.getInt("totalPages") ?: 0
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val viewModel: ReadingProgressViewModel = hiltViewModel()
+            AddReadingProgressScreen(
+                userLibraryId = userLibraryId,
+                bookTitle = bookTitle,
+                totalPages = totalPages,
+                userId = userId,
+                bookId = bookId,
+                viewModel = viewModel,
+                navController = navController
+            )
+        }
+
+        composable(
+            route = Screen.YourProgressReading.route,
+            arguments = listOf(
+                navArgument("userLibraryId") { type = androidx.navigation.NavType.LongType },
+                navArgument("bookTitle") { type = androidx.navigation.NavType.StringType },
+                navArgument("totalPages") { type = androidx.navigation.NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val userLibraryId = backStackEntry.arguments?.getLong("userLibraryId") ?: 0L
+            val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: ""
+            val totalPages = backStackEntry.arguments?.getInt("totalPages") ?: 0
+            val viewModel: ReadingProgressViewModel = hiltViewModel()
+            YourProgressReadingScreen(
+                userLibraryId = userLibraryId,
+                bookTitle = bookTitle,
+                totalPages = totalPages,
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )

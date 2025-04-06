@@ -7,23 +7,26 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.bibliobit.data.model.Book
 import com.example.bibliobit.data.model.LocalUser
+import com.example.bibliobit.data.model.ReadingProgress
 import com.example.bibliobit.data.model.UserLibrary
-import com.example.bibliobit.utils.DateConverter
 import com.example.bibliobit.utils.BookStatusConverter
+import com.example.bibliobit.utils.DateConverter
 
-@Database(entities = [LocalUser::class, Book::class, UserLibrary::class], version = 4, exportSchema = false)
+@Database(
+    entities = [LocalUser::class, Book::class, UserLibrary::class, ReadingProgress::class],
+    version = 5,
+    exportSchema = false
+)
 @TypeConverters(DateConverter::class, BookStatusConverter::class)
-
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun bookDao(): BookDao
     abstract fun userLibraryDao(): UserLibraryDao
+    abstract fun readingProgressDao(): ReadingProgressDao
 
     companion object {
-        // Migrasi dari versi 1 ke versi 2
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // Buat tabel books
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS `books` (
                         `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -39,12 +42,9 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        // Migrasi dari versi 2 ke versi 3
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // Tambahkan kolom pages (INTEGER, nullable)
                 database.execSQL("ALTER TABLE books ADD COLUMN pages INTEGER")
-                // Tambahkan kolom publisher (TEXT, nullable)
                 database.execSQL("ALTER TABLE books ADD COLUMN publisher TEXT")
             }
         }
@@ -66,6 +66,20 @@ abstract class AppDatabase : RoomDatabase() {
                 """.trimIndent())
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_user_library_userId` ON `user_library` (`userId`)")
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_user_library_bookId` ON `user_library` (`bookId`)")
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `reading_progress` (
+                        `user_library_id` INTEGER NOT NULL,
+                        `page_read` INTEGER NOT NULL,
+                        `recorded_at` INTEGER NOT NULL,
+                        PRIMARY KEY (`user_library_id`, `page_read`, `recorded_at`),
+                        FOREIGN KEY (`user_library_id`) REFERENCES `user_library`(`id`) ON DELETE CASCADE
+                    )
+                """.trimIndent())
             }
         }
     }

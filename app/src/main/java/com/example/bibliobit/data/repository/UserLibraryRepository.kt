@@ -31,4 +31,9 @@ class UserLibraryRepository @Inject constructor(
     suspend fun getUserLibraryByBookId(userId: String, bookId: Long): UserLibrary? {
         return userLibraryDao.getUserLibraryByBookId(userId, bookId)
     }
+
+    // Tambahkan metode untuk mengambil UserLibrary berdasarkan id
+    suspend fun getUserLibraryById(id: Long): UserLibrary? {
+        return userLibraryDao.getUserLibraryById(id)
+    }
 }

@@ -3,11 +3,13 @@ package com.example.bibliobit.di
 import android.content.Context
 import androidx.room.Room
 import com.example.bibliobit.data.repository.AppDatabase
-import com.example.bibliobit.data.repository.BookDao
-import com.example.bibliobit.data.repository.UserDao
 import com.example.bibliobit.data.repository.AuthRepository
 import com.example.bibliobit.data.repository.AuthRepositoryImpl
+import com.example.bibliobit.data.repository.BookDao
 import com.example.bibliobit.data.repository.BookRepository
+import com.example.bibliobit.data.repository.ReadingProgressDao
+import com.example.bibliobit.data.repository.ReadingProgressRepository
+import com.example.bibliobit.data.repository.UserDao
 import com.example.bibliobit.data.repository.UserLibraryDao
 import com.example.bibliobit.data.repository.UserLibraryRepository
 import com.example.bibliobit.utils.PreferencesManager
@@ -37,12 +39,6 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAuthRepository(auth: FirebaseAuth, firestore: FirebaseFirestore): AuthRepository {
-        return AuthRepositoryImpl(auth, firestore)
-    }
-
-    @Provides
-    @Singleton
     fun providePreferencesManager(@ApplicationContext context: Context): PreferencesManager {
         return PreferencesManager(context)
     }
@@ -55,7 +51,12 @@ object AppModule {
             AppDatabase::class.java,
             "bibliobit_database"
         )
-            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
+            .addMigrations(
+                AppDatabase.MIGRATION_1_2,
+                AppDatabase.MIGRATION_2_3,
+                AppDatabase.MIGRATION_3_4,
+                AppDatabase.MIGRATION_4_5
+            )
             .fallbackToDestructiveMigration()
             .build()
     }
@@ -88,5 +89,27 @@ object AppModule {
     @Singleton
     fun provideUserLibraryRepository(userLibraryDao: UserLibraryDao): UserLibraryRepository {
         return UserLibraryRepository(userLibraryDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideReadingProgressDao(appDatabase: AppDatabase): ReadingProgressDao {
+        return appDatabase.readingProgressDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideReadingProgressRepository(readingProgressDao: ReadingProgressDao): ReadingProgressRepository {
+        return ReadingProgressRepository(readingProgressDao)
+    }
+
+    // Tambahkan fungsi untuk menyediakan AuthRepository
+    @Provides
+    @Singleton
+    fun provideAuthRepository(
+        firebaseAuth: FirebaseAuth,
+        firestore: FirebaseFirestore
+    ): AuthRepository {
+        return AuthRepositoryImpl(firebaseAuth, firestore)
     }
 }

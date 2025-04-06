@@ -29,4 +29,8 @@ interface UserLibraryDao {
 
     @Query("SELECT * FROM user_library WHERE userId = :userId AND bookId = :bookId LIMIT 1")
     suspend fun getUserLibraryByBookId(userId: String, bookId: Long): UserLibrary?
+
+    // Tambahkan metode untuk mengambil UserLibrary berdasarkan id
+    @Query("SELECT * FROM user_library WHERE id = :id LIMIT 1")
+    suspend fun getUserLibraryById(id: Long): UserLibrary?
 }

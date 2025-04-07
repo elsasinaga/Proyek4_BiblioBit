@@ -135,13 +135,23 @@ fun LibraryScreen(
                     Box(
                         modifier = Modifier
                             .clickable {
-                                if (userLibrary.status == BookStatus.READING) {
-                                    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-                                    navController.navigate(
-                                        Screen.YourReadingBook.createRoute(userId, book.id)
-                                    )
-                                } else {
-                                    navController.navigate(Screen.BookDetail.createRoute(book.id))
+                                val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+                                when (userLibrary.status) {
+                                    BookStatus.PLAN_TO_READ -> {
+                                        navController.navigate(
+                                            Screen.YourWishlistBook.createRoute(userId, book.id)
+                                        )
+                                    }
+                                    BookStatus.READING -> {
+                                        navController.navigate(
+                                            Screen.YourReadingBook.createRoute(userId, book.id)
+                                        )
+                                    }
+                                    BookStatus.FINISH -> {
+                                        navController.navigate(
+                                            Screen.YourFinishBook.createRoute(userId, book.id)
+                                        ) // Ubah navigasi ke YourFinishBookScreen
+                                    }
                                 }
                             }
                     ) {

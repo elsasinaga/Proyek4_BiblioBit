@@ -38,6 +38,12 @@ import com.example.bibliobit.ui.readingprogress.AddReadingProgressScreen
 import com.example.bibliobit.ui.readingprogress.ReadingProgressViewModel
 import com.example.bibliobit.ui.readingprogress.YourProgressReadingScreen
 import com.example.bibliobit.ui.readingprogress.YourReadingBookScreen
+import com.example.bibliobit.ui.yourfinishbook.AddYourRatingScreen
+import com.example.bibliobit.ui.yourfinishbook.AddYourRatingViewModel
+import com.example.bibliobit.ui.yourfinishbook.YourFinishBookScreen
+import com.example.bibliobit.ui.yourfinishbook.YourFinishBookViewModel
+import com.example.bibliobit.ui.yourwishlistbook.YourWishlistBookScreen
+import com.example.bibliobit.ui.yourwishlistbook.YourWishlistBookViewModel
 import com.example.bibliobit.utils.PreferencesManager
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.first
@@ -66,6 +72,15 @@ sealed class Screen(val route: String) {
     object YourProgressReading : Screen("your_progress_reading/{userLibraryId}/{bookTitle}/{totalPages}") {
         fun createRoute(userLibraryId: Long, bookTitle: String, totalPages: Int) =
             "your_progress_reading/$userLibraryId/$bookTitle/$totalPages"
+    }
+    object YourWishlistBook : Screen("your_wishlist_book/{userId}/{bookId}") {
+        fun createRoute(userId: String, bookId: Long) = "your_wishlist_book/$userId/$bookId"
+    }
+    object YourFinishBook : Screen("your_finish_book/{userId}/{bookId}") {
+        fun createRoute(userId: String, bookId: Long) = "your_finish_book/$userId/$bookId"
+    }
+    object AddYourRating : Screen("add_your_rating/{userId}/{bookId}/{bookTitle}") {
+        fun createRoute(userId: String, bookId: Long, bookTitle: String) = "add_your_rating/$userId/$bookId/$bookTitle"
     }
 }
 
@@ -265,6 +280,64 @@ fun AppNavHost(
                 userLibraryId = userLibraryId,
                 bookTitle = bookTitle,
                 totalPages = totalPages,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.YourWishlistBook.route,
+            arguments = listOf(
+                navArgument("userId") { type = androidx.navigation.NavType.StringType },
+                navArgument("bookId") { type = androidx.navigation.NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val viewModel: YourWishlistBookViewModel = hiltViewModel()
+            YourWishlistBookScreen(
+                userId = userId,
+                bookId = bookId,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.YourFinishBook.route,
+            arguments = listOf(
+                navArgument("userId") { type = androidx.navigation.NavType.StringType },
+                navArgument("bookId") { type = androidx.navigation.NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val viewModel: YourFinishBookViewModel = hiltViewModel()
+            YourFinishBookScreen(
+                userId = userId,
+                bookId = bookId,
+                viewModel = viewModel,
+                navController = navController,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(
+            route = Screen.AddYourRating.route,
+            arguments = listOf(
+                navArgument("userId") { type = androidx.navigation.NavType.StringType },
+                navArgument("bookId") { type = androidx.navigation.NavType.LongType },
+                navArgument("bookTitle") { type = androidx.navigation.NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: ""
+            val viewModel: AddYourRatingViewModel = hiltViewModel()
+            AddYourRatingScreen(
+                userId = userId,
+                bookId = bookId,
+                bookTitle = bookTitle,
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() }
             )

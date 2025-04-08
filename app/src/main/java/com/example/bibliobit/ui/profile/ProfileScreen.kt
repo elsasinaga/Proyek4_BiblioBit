@@ -138,18 +138,41 @@ fun ProfileScreen(
                     enabled = false
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Button1(
-                    onClick = {
-                        viewModel.upsertProfile(name, username)
-                        isEditing = false
-                    },
-                    modifier = Modifier.fillMaxWidth(0.3f)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Save",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleSmall
-                    )
+                    Button1(
+                        onClick = {
+                            isEditing = false // Hanya keluar dari mode editing
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth(0.3f)
+                            .padding(end = 8.dp),
+                        backgroundColor = abu2 // Warna tombol Cancel
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
+                    Button1(
+                        onClick = {
+                            viewModel.upsertProfile(name, username)
+                            isEditing = false
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth(0.4f)
+                            .padding(start = 8.dp)
+                    ) {
+                        Text(
+                            text = "Save",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                    }
                 }
             } else {
                 Text(text = name, style = MaterialTheme.typography.titleLarge, color = abu3)

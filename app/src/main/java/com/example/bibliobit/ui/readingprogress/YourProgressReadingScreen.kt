@@ -50,44 +50,9 @@ fun YourProgressReadingScreen(
     // Check if the book is finished
     val isFinished = userLibrary?.status == BookStatus.FINISH || (userLibrary?.lastPageRead ?: 0) == totalPages
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Your Progress Reading",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 20.sp
-                        ),
-                        color = hitam,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = hijau5
-                        )
-                    }
-                },
-                actions = {
-                    Spacer(modifier = Modifier.width(48.dp))
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = hijau1
-                )
-            )
-        },
-        containerColor = hijau1
-    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -281,4 +246,3 @@ fun YourProgressReadingScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
-}

@@ -79,44 +79,9 @@ fun YourReadingBookScreen(
         return
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Your Reading Book",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 20.sp
-                        ),
-                        color = hitam,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = hijau5
-                        )
-                    }
-                },
-                actions = {
-                    Spacer(modifier = Modifier.width(48.dp))
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = hijau1
-                )
-            )
-        },
-        containerColor = hijau1
-    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -407,4 +372,3 @@ fun YourReadingBookScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
-}

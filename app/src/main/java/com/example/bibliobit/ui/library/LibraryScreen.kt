@@ -57,7 +57,6 @@ fun LibraryScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Spacer(modifier = Modifier.height(74.dp))
 
         // Filter Bar
         FilterBar(

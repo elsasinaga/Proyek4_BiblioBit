@@ -93,25 +93,29 @@ fun MainScreen(
             }
         }
     } else {
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navBackStackEntry?.destination?.route
-        val routesWithoutBottomBar = listOf(
-            Screen.Onboarding.route,
-            Screen.Login.route,
-            Screen.Register.route,
-            Screen.ForgotPassword.route
+//        val navBackStackEntry by navController.currentBackStackEntryAsState()
+//        val currentRoute = navBackStackEntry?.destination?.route
+//        val routesWithoutBottomBar = listOf(
+//            Screen.Onboarding.route,
+//            Screen.Login.route,
+//            Screen.Register.route,
+//            Screen.ForgotPassword.route
+//        )
+//
+//        Scaffold(
+//            bottomBar = {
+//                if (currentRoute != null && currentRoute !in routesWithoutBottomBar) {
+//                    BottomNavigationBar(navController = navController, currentRoute = currentRoute)
+//                }
+//            }
+//        ) { innerPadding ->
+//            Box(modifier = Modifier.padding(innerPadding)) {
+//                AppNavHost(navController = navController, preferencesManager = preferencesManager)
+//            }
+//        }
+        AppNavHost(
+            navController = navController,
+            preferencesManager = preferencesManager
         )
-
-        Scaffold(
-            bottomBar = {
-                if (currentRoute != null && currentRoute !in routesWithoutBottomBar) {
-                    BottomNavigationBar(navController = navController, currentRoute = currentRoute)
-                }
-            }
-        ) { innerPadding ->
-            Box(modifier = Modifier.padding(innerPadding)) {
-                AppNavHost(navController = navController, preferencesManager = preferencesManager)
-            }
-        }
     }
 }

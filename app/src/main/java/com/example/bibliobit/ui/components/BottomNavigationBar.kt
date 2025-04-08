@@ -8,7 +8,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,7 +63,26 @@ fun BottomNavigationBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         items.forEach { (screen, iconType) ->
-            val isSelected = currentRoute == screen.route
+            // Khusus untuk Library, tambahkan logika tambahan untuk menyorot
+            val isSelected = when (screen) {
+                Screen.Library -> {
+                    currentRoute == Screen.Library.route ||
+                            currentRoute?.startsWith(Screen.YourReadingBook.route.split("/{")[0]) == true ||
+                            currentRoute?.startsWith(Screen.YourProgressReading.route.split("/{")[0]) == true ||
+                            currentRoute?.startsWith(Screen.AddReadingProgress.route.split("/{")[0]) == true ||
+                            currentRoute?.startsWith(Screen.AddYourRating.route.split("/{")[0]) == true ||
+                            currentRoute?.startsWith(Screen.YourFinishBook.route.split("/{")[0]) == true ||
+                            currentRoute?.startsWith(Screen.YourWishlistBook.route.split("/{")[0]) == true
+                }
+                Screen.Add -> {
+                    currentRoute == Screen.Add.route ||
+                            currentRoute?.startsWith(Screen.BookDetail.route.split("/{")[0]) == true // Tambahan untuk BookDetail
+                }
+                else -> {
+                    currentRoute == screen.route
+                }
+            }
+
             NavigationItem(
                 iconType = iconType,
                 label = screen.route.replaceFirstChar { it.uppercase() },

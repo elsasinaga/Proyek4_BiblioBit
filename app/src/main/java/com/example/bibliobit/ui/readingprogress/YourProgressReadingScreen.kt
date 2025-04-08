@@ -50,33 +50,91 @@ fun YourProgressReadingScreen(
     // Check if the book is finished
     val isFinished = userLibrary?.status == BookStatus.FINISH || (userLibrary?.lastPageRead ?: 0) == totalPages
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = bookTitle,
+            style = MaterialTheme.typography.titleLarge,
+            color = hitam,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Timeline Progress
+        if (readingProgress.isEmpty() || firstReadingProgress == null) {
             Text(
-                text = bookTitle,
-                style = MaterialTheme.typography.titleLarge,
-                color = hitam,
+                text = "No reading progress yet.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = abu2,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(16.dp))
+        } else {
+            // First Dot: Start Reading Date
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = hijau5,
+                    modifier = Modifier.size(16.dp)
+                ) {}
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Day 1",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            color = hitam
+                        )
+                        Text(
+                            text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(firstReadingProgress!!.recordedAt),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = abu2
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Start Reading!",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = hitam
+                    )
+                }
+            }
 
-            // Timeline Progress
-            if (readingProgress.isEmpty() || firstReadingProgress == null) {
-                Text(
-                    text = "No reading progress yet.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = abu2,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
-            } else {
-                // First Dot: Start Reading Date
+            // Add a connecting line between the first and second dot
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .height(32.dp)
+                    .align(Alignment.Start)
+                    .offset(x = 7.dp)
+                    .background(hijau5)
+            )
+
+            // Second Dot: Last Reading Date and Pages Read (for the first update)
+            if (readingProgress.isNotEmpty()) {
+                val firstProgress = readingProgress[0]
+                // Jika buku selesai dan pageRead adalah 0, gunakan totalPages
+                val displayPageRead = if (isFinished && firstProgress.pageRead == 0) totalPages else firstProgress.pageRead
+                // Simulate the "Last Reading Date" as the day after the start date (06/04/2025)
+                val calendar = Calendar.getInstance()
+                calendar.time = firstReadingProgress!!.recordedAt
+                calendar.add(Calendar.DAY_OF_MONTH, 1)
+                val simulatedLastReadingDate = calendar.time
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -94,26 +152,24 @@ fun YourProgressReadingScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Day 1",
+                                text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(simulatedLastReadingDate),
                                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                                 color = hitam
                             )
-                            Text(
-                                text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(firstReadingProgress!!.recordedAt),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = abu2
-                            )
+                            Spacer(modifier = Modifier.width(0.dp))
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Start Reading!",
+                            text = "Read $displayPageRead Pages",
                             style = MaterialTheme.typography.bodyLarge,
                             color = hitam
                         )
                     }
                 }
+            }
 
-                // Add a connecting line between the first and second dot
+            // Remaining Progress Entries (starting from the second entry)
+            readingProgress.drop(1).forEachIndexed { index, progress ->
                 Spacer(modifier = Modifier.height(16.dp))
                 Box(
                     modifier = Modifier
@@ -124,118 +180,36 @@ fun YourProgressReadingScreen(
                         .background(hijau5)
                 )
 
-                // Second Dot: Last Reading Date and Pages Read (for the first update)
-                if (readingProgress.isNotEmpty()) {
-                    val firstProgress = readingProgress[0]
-                    // Simulate the "Last Reading Date" as the day after the start date (06/04/2025)
-                    val calendar = Calendar.getInstance()
-                    calendar.time = firstReadingProgress!!.recordedAt // Fix: Use !! since we know it's not null
-                    calendar.add(Calendar.DAY_OF_MONTH, 1)
-                    val simulatedLastReadingDate = calendar.time
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = hijau5,
-                            modifier = Modifier.size(16.dp)
-                        ) {}
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(simulatedLastReadingDate),
-                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                                    color = hitam
-                                )
-                                Spacer(modifier = Modifier.width(0.dp))
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = hijau5,
+                        modifier = Modifier.size(16.dp)
+                    ) {}
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
-                                text = "Read ${firstProgress.pageRead} Pages",
-                                style = MaterialTheme.typography.bodyLarge,
+                                text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(progress.recordedAt),
+                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                                 color = hitam
                             )
+                            Spacer(modifier = Modifier.width(0.dp))
                         }
-                    }
-                }
-
-                // Remaining Progress Entries (starting from the second entry)
-                readingProgress.drop(1).forEachIndexed { index, progress ->
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Box(
-                        modifier = Modifier
-                            .width(2.dp)
-                            .height(32.dp)
-                            .align(Alignment.Start)
-                            .offset(x = 7.dp)
-                            .background(hijau5)
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = hijau5,
-                            modifier = Modifier.size(16.dp)
-                        ) {}
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(progress.recordedAt),
-                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                                    color = hitam
-                                )
-                                Spacer(modifier = Modifier.width(0.dp))
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            val previousPage = readingProgress[index].pageRead // Previous entry in the original list
-                            val pageDiff = progress.pageRead - previousPage
-                            Text(
-                                text = if (pageDiff >= 0) "Read ${progress.pageRead} Pages (+$pageDiff)" else "Read ${progress.pageRead} Pages ($pageDiff)",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = hitam
-                            )
-                        }
-                    }
-                }
-
-                // Display "I've read them all!" if the book is finished
-                if (isFinished) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Box(
-                        modifier = Modifier
-                            .width(2.dp)
-                            .height(32.dp)
-                            .align(Alignment.Start)
-                            .offset(x = 7.dp)
-                            .background(hijau5)
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = hijau5,
-                            modifier = Modifier.size(16.dp)
-                        ) {}
-                        Spacer(modifier = Modifier.width(16.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        // Jika buku selesai dan pageRead adalah 0, gunakan totalPages
+                        val displayPageRead = if (isFinished && progress.pageRead == 0) totalPages else progress.pageRead
+                        val previousPage = if (isFinished && readingProgress[index].pageRead == 0) totalPages else readingProgress[index].pageRead
+                        val pageDiff = displayPageRead - previousPage
                         Text(
-                            text = "I've read them all!",
+                            text = if (pageDiff >= 0) "Read $displayPageRead Pages (+$pageDiff)" else "Read $displayPageRead Pages ($pageDiff)",
                             style = MaterialTheme.typography.bodyLarge,
                             color = hitam
                         )
@@ -243,6 +217,36 @@ fun YourProgressReadingScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            // Display "I've read them all!" if the book is finished
+            if (isFinished) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .height(32.dp)
+                        .align(Alignment.Start)
+                        .offset(x = 7.dp)
+                        .background(hijau5)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        shape = CircleShape,
+                        color = hijau5,
+                        modifier = Modifier.size(16.dp)
+                    ) {}
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text(
+                        text = "I've read them all!",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = hitam
+                    )
+                }
+            }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
+}

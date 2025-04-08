@@ -156,13 +156,17 @@ class ReadingProgressViewModel @Inject constructor(
         pageRead: Int,
         recordedAt: Date,
         lastReadingDate: Date,
-        isFinished: Boolean
+        isFinished: Boolean,
+        totalPages: Int // Tambahkan parameter totalPages
     ) {
         viewModelScope.launch {
-            println("Updating ReadingProgress for userLibraryId: $userLibraryId, pageRead: $pageRead, recordedAt: $recordedAt, lastReadingDate: $lastReadingDate")
+            // Jika isFinished true, pastikan pageRead diatur ke totalPages
+            val finalPageRead = if (isFinished && pageRead == 0) totalPages else pageRead
+            println("Updating ReadingProgress for userLibraryId: $userLibraryId, pageRead: $finalPageRead, recordedAt: $recordedAt, lastReadingDate: $lastReadingDate, isFinished: $isFinished, totalPages: $totalPages")
+
             val readingProgress = ReadingProgress(
                 userLibraryId = userLibraryId,
-                pageRead = pageRead,
+                pageRead = finalPageRead,
                 recordedAt = recordedAt
             )
             println("Inserting ReadingProgress: $readingProgress")
@@ -196,7 +200,7 @@ class ReadingProgressViewModel @Inject constructor(
 
             if (currentUserLibrary != null) {
                 val updatedUserLibrary = currentUserLibrary.copy(
-                    lastPageRead = pageRead,
+                    lastPageRead = finalPageRead, // Gunakan finalPageRead
                     updatedAt = lastReadingDate,
                     status = if (isFinished) BookStatus.FINISH else BookStatus.READING
                 )

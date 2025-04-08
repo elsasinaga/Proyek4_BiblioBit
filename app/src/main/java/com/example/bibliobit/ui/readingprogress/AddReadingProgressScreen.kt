@@ -2,6 +2,7 @@ package com.example.bibliobit.ui.readingprogress
 
 import android.app.DatePickerDialog
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -20,6 +21,7 @@ import com.example.bibliobit.ui.navigation.Screen
 import com.example.bibliobit.ui.theme.hijau4
 import com.example.bibliobit.ui.theme.hijau5
 import com.example.bibliobit.ui.theme.hitam
+import com.example.bibliobit.ui.theme.abu2
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -49,15 +51,41 @@ fun AddReadingProgressScreen(
     val showStartDateField = firstReadingProgress == null
 
     val startDatePickerDialog = remember {
-        createDatePickerDialog(context) { date ->
-            startDate = date
-        }
+        createDatePickerDialog(
+            context = context,
+            maxDate = Date(), // Batasi hingga tanggal hari ini
+            onDateSelected = { date ->
+                // Pastikan startDate tidak lebih baru dari lastReadingDate
+                if (date.after(lastReadingDate)) {
+                    Toast.makeText(
+                        context,
+                        "Start date cannot be after last reading date",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    startDate = date
+                }
+            }
+        )
     }
 
     val lastReadingDatePickerDialog = remember {
-        createDatePickerDialog(context) { date ->
-            lastReadingDate = date
-        }
+        createDatePickerDialog(
+            context = context,
+            maxDate = Date(), // Batasi hingga tanggal hari ini
+            onDateSelected = { date ->
+                // Pastikan lastReadingDate tidak lebih lama dari startDate (jika startDate ada)
+                if (startDate != null && date.before(startDate)) {
+                    Toast.makeText(
+                        context,
+                        "Last reading date cannot be before start date",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    lastReadingDate = date
+                }
+            }
+        )
     }
 
     Dialog(onDismissRequest = {
@@ -197,55 +225,100 @@ fun AddReadingProgressScreen(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Button1(
-                    onClick = {
-                        val pageRead = currentPage.toIntOrNull() ?: 0
-                        println("Saving progress: userLibraryId=$userLibraryId, pageRead=$pageRead, totalPages=$totalPages, currentPage='$currentPage', startDate=$startDate, lastReadingDate=$lastReadingDate")
-                        if (pageRead in 0..totalPages) {
-                            println("PageRead is valid, proceeding to save")
-                            if (showStartDateField && startDate == null) {
-                                println("Start date is required for the first progress")
-                                return@Button1
-                            }
-                            val recordedAt = if (showStartDateField && startDate != null) startDate!! else lastReadingDate
-                            viewModel.updateReadingProgress(
-                                userLibraryId = userLibraryId,
-                                pageRead = pageRead,
-                                recordedAt = recordedAt,
-                                lastReadingDate = lastReadingDate, // Tambahkan lastReadingDate
-                                isFinished = isFinished || pageRead == totalPages
-                            )
-                            navController.popBackStack()
-                        } else {
-                            println("Invalid pageRead: $pageRead, must be between 0 and $totalPages")
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                    backgroundColor = hijau4
+                // Row untuk menampung tombol Cancel dan Save
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(
-                        text = "Save",
-                        style = MaterialTheme.typography.button
-                    )
+                    // Tombol Cancel
+                    Button1(
+                        onClick = {
+                            navController.popBackStack() // Kembali tanpa menyimpan
+                        },
+                        modifier = Modifier
+                            .weight(1f) // Membagi ruang secara merata
+                            .height(40.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        backgroundColor = abu2 // Warna abu-abu untuk tombol Cancel
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            style = MaterialTheme.typography.button
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(16.dp)) // Jarak antara tombol
+
+                    // Tombol Save
+                    Button1(
+                        onClick = {
+                            // Jika "Finish Book" dicentang dan currentPage kosong, gunakan totalPages
+                            val pageRead = if (isFinished && currentPage.isEmpty()) {
+                                totalPages
+                            } else {
+                                currentPage.toIntOrNull() ?: 0
+                            }
+                            println("Saving progress: userLibraryId=$userLibraryId, pageRead=$pageRead, totalPages=$totalPages, currentPage='$currentPage', startDate=$startDate, lastReadingDate=$lastReadingDate")
+                            if (pageRead in 0..totalPages) {
+                                println("PageRead is valid, proceeding to save")
+                                if (showStartDateField && startDate == null) {
+                                    println("Start date is required for the first progress")
+                                    Toast.makeText(context, "Start date is required for the first progress", Toast.LENGTH_SHORT).show()
+                                    return@Button1
+                                }
+                                val recordedAt = if (showStartDateField && startDate != null) startDate!! else lastReadingDate
+                                viewModel.updateReadingProgress(
+                                    userLibraryId = userLibraryId,
+                                    pageRead = pageRead,
+                                    recordedAt = recordedAt,
+                                    lastReadingDate = lastReadingDate,
+                                    isFinished = isFinished || pageRead == totalPages,
+                                    totalPages = totalPages
+                                )
+                                navController.popBackStack()
+                            } else {
+                                println("Invalid pageRead: $pageRead, must be between 0 and $totalPages")
+                                Toast.makeText(context, "Invalid page: must be between 0 and $totalPages", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier
+                            .weight(1f) // Membagi ruang secara merata
+                            .height(40.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                        backgroundColor = hijau4
+                    ) {
+                        Text(
+                            text = "Save",
+                            style = MaterialTheme.typography.button
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-private fun createDatePickerDialog(context: Context, onDateSelected: (Date) -> Unit): DatePickerDialog {
+private fun createDatePickerDialog(
+    context: Context,
+    maxDate: Date,
+    onDateSelected: (Date) -> Unit
+): DatePickerDialog {
     val calendar = Calendar.getInstance()
-    return DatePickerDialog(
+    val dialog = DatePickerDialog(
         context,
         { _, year, month, dayOfMonth ->
             calendar.set(year, month, dayOfMonth)
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
             onDateSelected(calendar.time)
         },
         calendar.get(Calendar.YEAR),
         calendar.get(Calendar.MONTH),
         calendar.get(Calendar.DAY_OF_MONTH)
     )
+    // Atur tanggal maksimum ke maxDate (hari ini)
+    dialog.datePicker.maxDate = maxDate.time
+    return dialog
 }

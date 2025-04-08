@@ -3,6 +3,9 @@ package com.example.bibliobit.ui.yourfinishbook
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.bibliobit.data.repository.BookRepository
+import com.example.bibliobit.data.model.Book
+import com.example.bibliobit.data.model.BookStatus
 import com.example.bibliobit.data.model.ReadingProgress
 import com.example.bibliobit.data.repository.ReadingProgressRepository
 import com.example.bibliobit.data.repository.UserLibraryRepository
@@ -17,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AddYourRatingViewModel @Inject constructor(
     private val readingProgressRepository: ReadingProgressRepository,
-    private val userLibraryRepository: UserLibraryRepository
+    private val userLibraryRepository: UserLibraryRepository,
+    private val bookRepository: BookRepository // Tambahkan BookRepository
 ) : ViewModel() {
 
     private val _readingProgress = MutableStateFlow<List<ReadingProgress>>(emptyList())
@@ -25,6 +29,12 @@ class AddYourRatingViewModel @Inject constructor(
 
     private val _firstReadingProgress = MutableStateFlow<ReadingProgress?>(null)
     val firstReadingProgress: StateFlow<ReadingProgress?> = _firstReadingProgress.asStateFlow()
+
+    private val _totalPages = MutableStateFlow<Int>(0)
+    val totalPages: StateFlow<Int> = _totalPages.asStateFlow()
+
+    private val _isFinished = MutableStateFlow<Boolean>(false)
+    val isFinished: StateFlow<Boolean> = _isFinished.asStateFlow()
 
     fun loadReadingProgress(userId: String, bookId: Long) {
         viewModelScope.launch {
@@ -40,8 +50,17 @@ class AddYourRatingViewModel @Inject constructor(
                     val firstProgress = readingProgressRepository.getFirstReadingProgress(userLibrary.id)
                     _firstReadingProgress.value = firstProgress
 
+                    // Ambil totalPages dari Book
+                    val book = bookRepository.getBookById(bookId).firstOrNull()
+                    _totalPages.value = book?.pages ?: 0
+
+                    // Tentukan apakah buku selesai
+                    _isFinished.value = userLibrary.status == BookStatus.FINISH
+
                     Log.d("AddYourRatingViewModel", "Loaded reading progress: $progressList")
                     Log.d("AddYourRatingViewModel", "Loaded first reading progress: $firstProgress")
+                    Log.d("AddYourRatingViewModel", "Loaded total pages: ${_totalPages.value}")
+                    Log.d("AddYourRatingViewModel", "Is finished: ${_isFinished.value}")
                 }
             } catch (e: Exception) {
                 Log.e("AddYourRatingViewModel", "Error loading reading progress: ${e.message}", e)

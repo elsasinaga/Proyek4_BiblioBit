@@ -36,6 +36,8 @@ fun AddYourRatingScreen(
 ) {
     val readingProgress by viewModel.readingProgress.collectAsState()
     val firstReadingProgress by viewModel.firstReadingProgress.collectAsState()
+    val totalPages by viewModel.totalPages.collectAsState()
+    val isFinished by viewModel.isFinished.collectAsState()
     var rating by remember { mutableStateOf(0f) }
 
     // Load reading progress
@@ -43,35 +45,84 @@ fun AddYourRatingScreen(
         viewModel.loadReadingProgress(userId, bookId)
     }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Spacer(modifier = Modifier.height(16.dp))
 
+        Text(
+            text = bookTitle,
+            style = MaterialTheme.typography.titleLarge,
+            color = hitam,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Timeline Progress
+        if (readingProgress.isEmpty() || firstReadingProgress == null) {
             Text(
-                text = bookTitle,
-                style = MaterialTheme.typography.titleLarge,
-                color = hitam,
+                text = "No reading progress yet.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = abu2,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
             )
+        } else {
+            // First Dot: Start Reading Date
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = hijau5,
+                    modifier = Modifier.size(16.dp)
+                ) {}
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Day 1",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            color = hitam
+                        )
+                        Text(
+                            text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(firstReadingProgress!!.recordedAt),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = abu2
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Start Reading!",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = hitam
+                    )
+                }
+            }
 
+            // Add a connecting line between the first and second dot
             Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .height(32.dp)
+                    .align(Alignment.Start)
+                    .offset(x = 7.dp)
+                    .background(hijau5)
+            )
 
-            // Timeline Progress
-            if (readingProgress.isEmpty() || firstReadingProgress == null) {
-                Text(
-                    text = "No reading progress yet.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = abu2,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
-            } else {
-                // First Dot: Start Reading Date
+            // Remaining Progress Entries
+            readingProgress.forEachIndexed { index, progress ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -89,159 +140,114 @@ fun AddYourRatingScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Day 1",
+                                text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(progress.recordedAt),
                                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                                 color = hitam
                             )
-                            Text(
-                                text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(firstReadingProgress!!.recordedAt),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = abu2
-                            )
+                            Spacer(modifier = Modifier.width(0.dp))
                         }
                         Spacer(modifier = Modifier.height(8.dp))
+                        // Jika buku selesai dan pageRead adalah 0, gunakan totalPages
+                        val displayPageRead = if (isFinished && progress.pageRead == 0) totalPages else progress.pageRead
+                        val previousPage = if (index == 0) 0 else {
+                            if (isFinished && readingProgress[index - 1].pageRead == 0) totalPages else readingProgress[index - 1].pageRead
+                        }
+                        val pageDiff = displayPageRead - previousPage
                         Text(
-                            text = "Start Reading!",
+                            text = if (pageDiff >= 0) "Read $displayPageRead Pages (+$pageDiff)" else "Read $displayPageRead Pages ($pageDiff)",
                             style = MaterialTheme.typography.bodyLarge,
                             color = hitam
                         )
                     }
                 }
 
-                // Add a connecting line between the first and second dot
-                Spacer(modifier = Modifier.height(16.dp))
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .height(32.dp)
-                        .align(Alignment.Start)
-                        .offset(x = 7.dp)
-                        .background(hijau5)
-                )
-
-                // Remaining Progress Entries
-                readingProgress.forEachIndexed { index, progress ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = hijau5,
-                            modifier = Modifier.size(16.dp)
-                        ) {}
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(progress.recordedAt),
-                                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                                    color = hitam
-                                )
-                                Spacer(modifier = Modifier.width(0.dp))
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            val previousPage = if (index == 0) 0 else readingProgress[index - 1].pageRead
-                            val pageDiff = progress.pageRead - previousPage
-                            Text(
-                                text = if (pageDiff >= 0) "Read ${progress.pageRead} Pages (+$pageDiff)" else "Read ${progress.pageRead} Pages ($pageDiff)",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = hitam
-                            )
-                        }
-                    }
-
-                    if (index < readingProgress.size - 1) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Box(
-                            modifier = Modifier
-                                .width(2.dp)
-                                .height(32.dp)
-                                .align(Alignment.Start)
-                                .offset(x = 7.dp)
-                                .background(hijau5)
-                        )
-                    }
-                }
-
-                // Last Dot: I've read them all!
-                Spacer(modifier = Modifier.height(16.dp))
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .height(32.dp)
-                        .align(Alignment.Start)
-                        .offset(x = 7.dp)
-                        .background(hijau5)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = hijau5,
-                        modifier = Modifier.size(16.dp)
-                    ) {}
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(
-                        text = "I've read them all!",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = hitam
+                if (index < readingProgress.size - 1) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(2.dp)
+                            .height(32.dp)
+                            .align(Alignment.Start)
+                            .offset(x = 7.dp)
+                            .background(hijau5)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Rating Section
-            Text(
-                text = "What is the rating for this book?",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                color = hitam
-            )
+            // Last Dot: I've read them all!
             Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .height(32.dp)
+                    .align(Alignment.Start)
+                    .offset(x = 7.dp)
+                    .background(hijau5)
+            )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                RatingBar(
-                    rating = rating,
-                    modifier = Modifier.height(40.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Slider(
-                value = rating,
-                onValueChange = { rating = it },
-                valueRange = 0f..5f,
-                steps = 4,
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Save Button
-            Button1(
-                onClick = {
-                    viewModel.saveRating(userId, bookId, rating)
-                    onNavigateBack()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(40.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = hijau5,
+                    modifier = Modifier.size(16.dp)
+                ) {}
+                Spacer(modifier = Modifier.width(16.dp))
                 Text(
-                    text = "Save",
-                    style = MaterialTheme.typography.labelSmall
+                    text = "I've read them all!",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = hitam
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Rating Section
+        Text(
+            text = "What is the rating for this book?",
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            color = hitam
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            RatingBar(
+                rating = rating,
+                modifier = Modifier.height(40.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Slider(
+            value = rating,
+            onValueChange = { rating = it },
+            valueRange = 0f..5f,
+            steps = 4,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Save Button
+        Button1(
+            onClick = {
+                viewModel.saveRating(userId, bookId, rating)
+                onNavigateBack()
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = "Save",
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
+}

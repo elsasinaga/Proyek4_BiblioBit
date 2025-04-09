@@ -43,27 +43,25 @@ fun BottomNavigationBar(
         Screen.Home to IconType.Vector(Icons.Default.Home),
         Screen.Add to IconType.Vector(Icons.Default.Add),
         Screen.Statistic to IconType.Drawable(R.drawable.chart),
-        Screen.Library to IconType.Drawable(R.drawable.open_book), // Gunakan PNG untuk Library
+        Screen.Library to IconType.Drawable(R.drawable.open_book),
         Screen.Profile to IconType.Vector(Icons.Default.Person)
     )
 
-    // Warna untuk navigation bar
     val background = putih
-    val activeColor = hijau5 // Warna hijau saat aktif
-    val inactiveColor = abu3 // Warna abu-abu saat tidak aktif
+    val activeColor = hijau5
+    val inactiveColor = abu3
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(100.dp)
-            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)) // Sudut membulat di atas
+            .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
             .background(background)
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
         items.forEach { (screen, iconType) ->
-            // Khusus untuk Library, tambahkan logika tambahan untuk menyorot
             val isSelected = when (screen) {
                 Screen.Library -> {
                     currentRoute == Screen.Library.route ||
@@ -72,11 +70,12 @@ fun BottomNavigationBar(
                             currentRoute?.startsWith(Screen.AddReadingProgress.route.split("/{")[0]) == true ||
                             currentRoute?.startsWith(Screen.AddYourRating.route.split("/{")[0]) == true ||
                             currentRoute?.startsWith(Screen.YourFinishBook.route.split("/{")[0]) == true ||
-                            currentRoute?.startsWith(Screen.YourWishlistBook.route.split("/{")[0]) == true
+                            currentRoute?.startsWith(Screen.YourWishlistBook.route.split("/{")[0]) == true ||
+                            currentRoute?.startsWith(Screen.Notes.route.split("/{")[0]) == true // Tambahkan rute Notes
                 }
                 Screen.Add -> {
                     currentRoute == Screen.Add.route ||
-                            currentRoute?.startsWith(Screen.BookDetail.route.split("/{")[0]) == true // Tambahan untuk BookDetail
+                            currentRoute?.startsWith(Screen.BookDetail.route.split("/{")[0]) == true
                 }
                 else -> {
                     currentRoute == screen.route
@@ -102,7 +101,7 @@ fun BottomNavigationBar(
 
 @Composable
 fun NavigationItem(
-    iconType: IconType, // Ubah parameter untuk menerima IconType
+    iconType: IconType,
     label: String,
     isSelected: Boolean,
     activeColor: androidx.compose.ui.graphics.Color,

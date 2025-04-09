@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.bibliobit.data.model.Book
 import com.example.bibliobit.data.model.BookStatus
+import com.example.bibliobit.data.model.UserLibrary
 import com.example.bibliobit.data.repository.BookRepository
 import com.example.bibliobit.data.repository.UserLibraryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,6 +25,9 @@ class YourWishlistBookViewModel @Inject constructor(
     private val _book = MutableStateFlow<Book?>(null)
     val book: StateFlow<Book?> = _book.asStateFlow()
 
+    private val _userLibrary = MutableStateFlow<UserLibrary?>(null) // Tambahkan state untuk UserLibrary
+    val userLibrary: StateFlow<UserLibrary?> = _userLibrary.asStateFlow()
+
     fun loadBook(bookId: Long) {
         viewModelScope.launch {
             try {
@@ -32,6 +36,18 @@ class YourWishlistBookViewModel @Inject constructor(
                 Log.d("YourWishlistBookViewModel", "Loaded book: $bookData")
             } catch (e: Exception) {
                 Log.e("YourWishlistBookViewModel", "Error loading book: ${e.message}", e)
+            }
+        }
+    }
+
+    fun loadUserLibrary(userId: String, bookId: Long) {
+        viewModelScope.launch {
+            try {
+                val userLibraryData = userLibraryRepository.getUserLibraryByBookId(userId, bookId)
+                _userLibrary.value = userLibraryData
+                Log.d("YourWishlistBookViewModel", "Loaded user library: $userLibraryData")
+            } catch (e: Exception) {
+                Log.e("YourWishlistBookViewModel", "Error loading user library: ${e.message}", e)
             }
         }
     }

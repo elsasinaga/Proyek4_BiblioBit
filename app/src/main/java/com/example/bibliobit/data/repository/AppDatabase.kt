@@ -7,14 +7,15 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.bibliobit.data.model.Book
 import com.example.bibliobit.data.model.LocalUser
+import com.example.bibliobit.data.model.Note
 import com.example.bibliobit.data.model.ReadingProgress
 import com.example.bibliobit.data.model.UserLibrary
 import com.example.bibliobit.utils.BookStatusConverter
 import com.example.bibliobit.utils.DateConverter
 
 @Database(
-    entities = [LocalUser::class, Book::class, UserLibrary::class, ReadingProgress::class],
-    version = 5,
+    entities = [LocalUser::class, Book::class, UserLibrary::class, ReadingProgress::class, Note::class],
+    version = 6, // Tetap versi 6 karena belum menjalankan aplikasi
     exportSchema = false
 )
 @TypeConverters(DateConverter::class, BookStatusConverter::class)
@@ -23,6 +24,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun bookDao(): BookDao
     abstract fun userLibraryDao(): UserLibraryDao
     abstract fun readingProgressDao(): ReadingProgressDao
+    abstract fun noteDao(): NoteDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -77,6 +79,22 @@ abstract class AppDatabase : RoomDatabase() {
                         `page_read` INTEGER NOT NULL,
                         `recorded_at` INTEGER NOT NULL,
                         PRIMARY KEY (`user_library_id`, `page_read`, `recorded_at`),
+                        FOREIGN KEY (`user_library_id`) REFERENCES `user_library`(`id`) ON DELETE CASCADE
+                    )
+                """.trimIndent())
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS `notes` (
+                        `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `user_library_id` INTEGER NOT NULL,
+                        `content` TEXT NOT NULL,
+                        `image` TEXT,
+                        `created_at` INTEGER NOT NULL,
+                        `updated_at` INTEGER, -- Tambahkan kolom updated_at (nullable)
                         FOREIGN KEY (`user_library_id`) REFERENCES `user_library`(`id`) ON DELETE CASCADE
                     )
                 """.trimIndent())

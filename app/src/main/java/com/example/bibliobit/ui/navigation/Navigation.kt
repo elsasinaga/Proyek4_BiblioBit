@@ -47,6 +47,8 @@ import com.example.bibliobit.ui.yourfinishbook.YourFinishBookScreen
 import com.example.bibliobit.ui.yourfinishbook.YourFinishBookViewModel
 import com.example.bibliobit.ui.yourwishlistbook.YourWishlistBookScreen
 import com.example.bibliobit.ui.yourwishlistbook.YourWishlistBookViewModel
+import com.example.bibliobit.ui.notes.NotesScreen
+import com.example.bibliobit.ui.notes.NotesViewModel
 import com.example.bibliobit.utils.PreferencesManager
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.first
@@ -84,6 +86,9 @@ sealed class Screen(val route: String) {
     }
     object AddYourRating : Screen("add_your_rating/{userId}/{bookId}/{bookTitle}") {
         fun createRoute(userId: String, bookId: Long, bookTitle: String) = "add_your_rating/$userId/$bookId/$bookTitle"
+    }
+    object Notes : Screen("notes/{userLibraryId}/{bookTitle}") {
+        fun createRoute(userLibraryId: Long, bookTitle: String) = "notes/$userLibraryId/$bookTitle"
     }
 }
 
@@ -330,7 +335,8 @@ fun AppNavHost(
                                     )
                                 )
                             }
-                        }
+                        },
+                        navController = navController
                     )
                 }
             }
@@ -432,6 +438,7 @@ fun AppNavHost(
                         userId = userId,
                         bookId = bookId,
                         viewModel = viewModel,
+                        navController = navController, // Tambahkan navController
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }
@@ -502,6 +509,36 @@ fun AppNavHost(
             }
         }
 
+        composable(
+            route = Screen.Notes.route,
+            arguments = listOf(
+                navArgument("userLibraryId") { type = androidx.navigation.NavType.LongType },
+                navArgument("bookTitle") { type = androidx.navigation.NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val userLibraryId = backStackEntry.arguments?.getLong("userLibraryId") ?: 0L
+            val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: ""
+            val viewModel: NotesViewModel = hiltViewModel()
+            AppScaffold(
+                navController = navController,
+                title = "Notes",
+                showTopBar = true,
+                showBackButton = true,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    NotesScreen(
+                        userLibraryId = userLibraryId,
+                        bookTitle = bookTitle,
+                        viewModel = viewModel,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
+        }
+
         composable(Screen.Statistic.route) {
             val viewModel: StatisticViewModel = hiltViewModel()
             AppScaffold(
@@ -513,8 +550,6 @@ fun AppNavHost(
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize(),
-//                    verticalArrangement = Arrangement . Center,
-//                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     StatisticScreen(
                         viewModel = viewModel
@@ -522,7 +557,6 @@ fun AppNavHost(
                 }
             }
         }
-
 
         composable(Screen.Library.route) {
             val viewModel: LibraryViewModel = hiltViewModel()
@@ -545,7 +579,7 @@ fun AppNavHost(
         }
 
         composable(Screen.Profile.route) {
-                AppScaffold(
+            AppScaffold(
                 navController = navController,
                 title = "Profile",
                 showTopBar = true,

@@ -7,6 +7,8 @@ import com.example.bibliobit.data.repository.AuthRepository
 import com.example.bibliobit.data.repository.AuthRepositoryImpl
 import com.example.bibliobit.data.repository.BookDao
 import com.example.bibliobit.data.repository.BookRepository
+import com.example.bibliobit.data.repository.NoteDao
+import com.example.bibliobit.data.repository.NoteRepository
 import com.example.bibliobit.data.repository.ReadingProgressDao
 import com.example.bibliobit.data.repository.ReadingProgressRepository
 import com.example.bibliobit.data.repository.UserDao
@@ -55,7 +57,8 @@ object AppModule {
                 AppDatabase.MIGRATION_1_2,
                 AppDatabase.MIGRATION_2_3,
                 AppDatabase.MIGRATION_3_4,
-                AppDatabase.MIGRATION_4_5
+                AppDatabase.MIGRATION_4_5,
+                AppDatabase.MIGRATION_5_6
             )
             .fallbackToDestructiveMigration()
             .build()
@@ -103,7 +106,18 @@ object AppModule {
         return ReadingProgressRepository(readingProgressDao)
     }
 
-    // Tambahkan fungsi untuk menyediakan AuthRepository
+    @Provides
+    @Singleton
+    fun provideNoteDao(appDatabase: AppDatabase): NoteDao {
+        return appDatabase.noteDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideNoteRepository(noteDao: NoteDao): NoteRepository {
+        return NoteRepository(noteDao)
+    }
+
     @Provides
     @Singleton
     fun provideAuthRepository(

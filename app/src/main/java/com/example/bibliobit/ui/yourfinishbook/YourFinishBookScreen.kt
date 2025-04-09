@@ -45,7 +45,7 @@ fun YourFinishBookScreen(
     val userLibrary by viewModel.userLibrary.collectAsState(initial = null)
     var isFavorite by remember { mutableStateOf(false) }
 
-    // Load book and user library data
+    // Load book dan userLibrary data
     LaunchedEffect(bookId) {
         viewModel.loadBook(bookId)
         viewModel.loadUserLibrary(userId, bookId)
@@ -61,212 +61,217 @@ fun YourFinishBookScreen(
         return
     }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp)
-                .verticalScroll(rememberScrollState())
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp)
+            .verticalScroll(rememberScrollState())
+    ) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Cover Buku dan Rating
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Start,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Cover Buku dan Rating
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (book?.coverPhotoPath != null) {
-                    Image(
-                        painter = rememberAsyncImagePainter(book?.coverPhotoPath),
-                        contentDescription = "Book Cover",
-                        modifier = Modifier
-                            .width(170.dp)
-                            .height(255.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Surface(
-                        modifier = Modifier
-                            .width(170.dp)
-                            .height(255.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "No Cover",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                // Your Rating dalam Kotak
+            if (book?.coverPhotoPath != null) {
+                Image(
+                    painter = rememberAsyncImagePainter(book?.coverPhotoPath),
+                    contentDescription = "Book Cover",
+                    modifier = Modifier
+                        .width(170.dp)
+                        .height(255.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
                 Surface(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, hijau4, RoundedCornerShape(8.dp)),
-                    color = hijau2,
-                    shape = RoundedCornerShape(8.dp)
+                        .width(170.dp)
+                        .height(255.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
+                    Box(contentAlignment = Alignment.Center) {
                         Text(
-                            text = "Your Rating",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontWeight = FontWeight.Normal
-                            ),
-                            color = hitam,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        RatingBar(
-                            rating = userLibrary?.rating ?: 0f,
-                            modifier = Modifier.height(20.dp)
+                            text = "No Cover",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            // Judul dan Tombol Favorit
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            // Your Rating dalam Kotak
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, hijau4, RoundedCornerShape(8.dp)),
+                color = hijau2,
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Your Rating",
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontWeight = FontWeight.Normal
+                        ),
+                        color = hitam,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    RatingBar(
+                        rating = userLibrary?.rating ?: 0f,
+                        modifier = Modifier.height(20.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Judul dan Tombol Favorit
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = book?.title ?: "Unknown Title",
+                style = MaterialTheme.typography.titleLarge,
+                color = hitam,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = { isFavorite = !isFavorite }) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (isFavorite) MaterialTheme.colorScheme.error else hijau5
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Publisher
+        Text(
+            text = book?.publisher ?: "Unknown",
+            style = MaterialTheme.typography.bodyLarge,
+            color = hijau5
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Deskripsi
+        Text(
+            text = book?.description ?: "No description available.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = abu2
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Informasi Buku
+        Text(
+            text = "Book Info",
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            color = hitam
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Authors: ${book?.author ?: "Unknown"}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = abu2
+        )
+        Text(
+            text = "Genre: ${book?.genre ?: "Unknown"}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = abu2
+        )
+        Text(
+            text = "Number of Pages: ${book?.pages ?: "Unknown"}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = abu2
+        )
+        Text(
+            text = "Date Published: ${book?.year ?: "Unknown"}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = abu2
+        )
+        Text(
+            text = "ISBN: ${book?.isbn ?: "Unknown"}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = abu2
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Tombol Add Rating, Read Again!, dan Add Notes
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button1(
+                onClick = {
+                    navController.navigate(
+                        Screen.AddYourRating.createRoute(userId, bookId, book?.title ?: "")
+                    )
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(40.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text(
-                    text = book?.title ?: "Unknown Title",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = hitam,
-                    modifier = Modifier.weight(1f)
+                    text = "Add Rating",
+                    style = MaterialTheme.typography.labelSmall
                 )
-                IconButton(onClick = { isFavorite = !isFavorite }) {
-                    Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Favorite",
-                        tint = if (isFavorite) MaterialTheme.colorScheme.error else hijau5
-                    )
-                }
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Publisher
-            Text(
-                text = book?.publisher ?: "Unknown",
-                style = MaterialTheme.typography.bodyLarge,
-                color = hijau5
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Deskripsi
-            Text(
-                text = book?.description ?: "No description available.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = abu2
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Informasi Buku
-            Text(
-                text = "Book Info",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                color = hitam
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Authors: ${book?.author ?: "Unknown"}",
-                style = MaterialTheme.typography.bodyLarge,
-                color = abu2
-            )
-            Text(
-                text = "Genre: ${book?.genre ?: "Unknown"}",
-                style = MaterialTheme.typography.bodyLarge,
-                color = abu2
-            )
-            Text(
-                text = "Number of Pages: ${book?.pages ?: "Unknown"}",
-                style = MaterialTheme.typography.bodyLarge,
-                color = abu2
-            )
-            Text(
-                text = "Date Published: ${book?.year ?: "Unknown"}",
-                style = MaterialTheme.typography.bodyLarge,
-                color = abu2
-            )
-            Text(
-                text = "ISBN: ${book?.isbn ?: "Unknown"}",
-                style = MaterialTheme.typography.bodyLarge,
-                color = abu2
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Tombol Add Rating, Read Again!, dan Add Notes
-            Row(
+            Button1(
+                onClick = {
+                    viewModel.readAgain(userId, bookId)
+                    navController.navigate(
+                        Screen.YourReadingBook.createRoute(userId, bookId)
+                    )
+                },
                 modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .weight(1f)
+                    .height(40.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Button1(
-                    onClick = {
-                        navController.navigate(
-                            Screen.AddYourRating.createRoute(userId, bookId, book?.title ?: "")
-                        )
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = "Add Rating",
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-                Button1(
-                    onClick = {
-                        viewModel.readAgain(userId, bookId)
-                        navController.navigate(
-                            Screen.YourReadingBook.createRoute(userId, bookId)
-                        )
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = "Read Again!",
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
-                Button1(
-                    onClick = { /* Add Notes logic will be implemented later */ },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = "Add Notes",
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
+                Text(
+                    text = "Read Again!",
+                    style = MaterialTheme.typography.labelSmall
+                )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Button1(
+                onClick = {
+                    val userLibraryId = userLibrary?.id ?: 0L
+                    val bookTitle = book?.title ?: "Unknown Title"
+                    println("Navigating to NotesScreen with userLibraryId: $userLibraryId, bookTitle: $bookTitle")
+                    navController.navigate(Screen.Notes.createRoute(userLibraryId, bookTitle))
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(40.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "Add Notes",
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
+}

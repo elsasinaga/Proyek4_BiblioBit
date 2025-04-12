@@ -21,7 +21,6 @@ import com.example.bibliobit.ui.theme.hijau1
 import com.example.bibliobit.ui.theme.hijau5
 import com.example.bibliobit.ui.theme.hitam
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -113,62 +112,7 @@ fun YourProgressReadingScreen(
                 }
             }
 
-            // Add a connecting line between the first and second dot
-            Spacer(modifier = Modifier.height(16.dp))
-            Box(
-                modifier = Modifier
-                    .width(2.dp)
-                    .height(32.dp)
-                    .align(Alignment.Start)
-                    .offset(x = 7.dp)
-                    .background(hijau5)
-            )
-
-            // Second Dot: Last Reading Date and Pages Read (for the first update)
-            if (readingProgress.isNotEmpty()) {
-                val firstProgress = readingProgress[0]
-                // Jika buku selesai dan pageRead adalah 0, gunakan totalPages
-                val displayPageRead = if (isFinished && firstProgress.pageRead == 0) totalPages else firstProgress.pageRead
-                // Simulate the "Last Reading Date" as the day after the start date (06/04/2025)
-                val calendar = Calendar.getInstance()
-                calendar.time = firstReadingProgress!!.recordedAt
-                calendar.add(Calendar.DAY_OF_MONTH, 1)
-                val simulatedLastReadingDate = calendar.time
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = hijau5,
-                        modifier = Modifier.size(16.dp)
-                    ) {}
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(simulatedLastReadingDate),
-                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                                color = hitam
-                            )
-                            Spacer(modifier = Modifier.width(0.dp))
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Read $displayPageRead Pages",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = hitam
-                        )
-                    }
-                }
-            }
-
-            // Remaining Progress Entries (starting from the second entry)
+            // Progress Entries (mulai dari entri kedua, karena entri pertama adalah "Start Reading")
             readingProgress.drop(1).forEachIndexed { index, progress ->
                 Spacer(modifier = Modifier.height(16.dp))
                 Box(
@@ -206,7 +150,7 @@ fun YourProgressReadingScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         // Jika buku selesai dan pageRead adalah 0, gunakan totalPages
                         val displayPageRead = if (isFinished && progress.pageRead == 0) totalPages else progress.pageRead
-                        val previousPage = if (isFinished && readingProgress[index].pageRead == 0) totalPages else readingProgress[index].pageRead
+                        val previousPage = if (index == 0) 0 else (if (isFinished && readingProgress[index].pageRead == 0) totalPages else readingProgress[index].pageRead)
                         val pageDiff = displayPageRead - previousPage
                         Text(
                             text = if (pageDiff >= 0) "Read $displayPageRead Pages (+$pageDiff)" else "Read $displayPageRead Pages ($pageDiff)",

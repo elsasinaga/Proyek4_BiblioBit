@@ -266,11 +266,20 @@ fun AddReadingProgressScreen(
                                     Toast.makeText(context, "Start date is required for the first progress", Toast.LENGTH_SHORT).show()
                                     return@Button1
                                 }
-                                val recordedAt = if (showStartDateField && startDate != null) startDate!! else lastReadingDate
+                                // Untuk progress pertama, buat entri "Start Reading" dengan pageRead = 0
+                                if (showStartDateField && startDate != null) {
+                                    viewModel.insertStartReadingProgress(
+                                        userLibraryId = userLibraryId,
+                                        startDate = startDate!!,
+                                        lastReadingDate = lastReadingDate,
+                                        totalPages = totalPages
+                                    )
+                                }
+                                // Simpan progress aktual dengan lastReadingDate
                                 viewModel.updateReadingProgress(
                                     userLibraryId = userLibraryId,
                                     pageRead = pageRead,
-                                    recordedAt = recordedAt,
+                                    recordedAt = lastReadingDate,
                                     lastReadingDate = lastReadingDate,
                                     isFinished = isFinished || pageRead == totalPages,
                                     totalPages = totalPages

@@ -20,6 +20,14 @@ import java.util.Date
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
+data class ReadingBook(
+    val bookId: Long,
+    val bookTitle: String,
+    val coverPhotoPath: String?,
+    val lastPageRead: Int?, // Ubah dari Int menjadi Int? untuk mendukung nilai nullable
+    val totalPages: Int? // Sudah Int? dari perbaikan sebelumnya
+)
+
 @HiltViewModel
 class ReadingProgressViewModel @Inject constructor(
     private val userLibraryRepository: UserLibraryRepository,
@@ -41,6 +49,10 @@ class ReadingProgressViewModel @Inject constructor(
 
     private val _daysBetweenStartAndLast = MutableStateFlow<Long>(0L)
     val daysBetweenStartAndLast: StateFlow<Long> = _daysBetweenStartAndLast.asStateFlow()
+
+    // State untuk daftar buku yang sedang dibaca
+    private val _readingBooks = MutableStateFlow<List<ReadingBook>>(emptyList())
+    val readingBooks: StateFlow<List<ReadingBook>> = _readingBooks.asStateFlow()
 
     private var userId: String? = null
     private var bookId: Long? = null
@@ -147,6 +159,34 @@ class ReadingProgressViewModel @Inject constructor(
                         _readingProgress.value = progressList
                         println("Loaded ReadingProgress: $progressList")
                     }
+            }
+        }
+    }
+
+    // Fungsi untuk mengambil daftar buku yang sedang dibaca
+    fun loadReadingBooks(userId: String) {
+        viewModelScope.launch {
+            println("Loading reading books for userId: $userId")
+            userLibraryRepository.getUserLibrary(userId).collect { userLibraries ->
+                val readingBooks = mutableListOf<ReadingBook>()
+                for (userLibrary in userLibraries) {
+                    if (userLibrary.status == BookStatus.READING) {
+                        val book = bookRepository.getBookById(userLibrary.bookId).firstOrNull()
+                        if (book != null) {
+                            readingBooks.add(
+                                ReadingBook(
+                                    bookId = userLibrary.bookId,
+                                    bookTitle = book.title,
+                                    coverPhotoPath = book.coverPhotoPath,
+                                    lastPageRead = userLibrary.lastPageRead, // Sekarang lastPageRead sudah Int?, jadi tidak ada masalah
+                                    totalPages = book.pages
+                                )
+                            )
+                        }
+                    }
+                }
+                _readingBooks.value = readingBooks.sortedBy { it.bookTitle }
+                println("Loaded reading books: $readingBooks")
             }
         }
     }

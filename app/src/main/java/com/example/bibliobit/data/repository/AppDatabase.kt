@@ -15,7 +15,7 @@ import com.example.bibliobit.utils.DateConverter
 
 @Database(
     entities = [LocalUser::class, Book::class, UserLibrary::class, ReadingProgress::class, Note::class],
-    version = 6, // Tetap versi 6 karena belum menjalankan aplikasi
+    version = 7, // Tetap versi 6 karena belum menjalankan aplikasi
     exportSchema = false
 )
 @TypeConverters(DateConverter::class, BookStatusConverter::class)

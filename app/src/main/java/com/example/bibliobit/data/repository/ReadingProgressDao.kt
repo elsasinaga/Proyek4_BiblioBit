@@ -17,4 +17,13 @@ interface ReadingProgressDao {
 
     @Query("SELECT * FROM reading_progress WHERE user_library_id = :userLibraryId ORDER BY recorded_at ASC LIMIT 1")
     suspend fun getFirstReadingProgress(userLibraryId: Long): ReadingProgress?
+
+    // Query baru untuk mengambil semua ReadingProgress berdasarkan userId
+    @Query("""
+        SELECT rp.* FROM reading_progress rp
+        INNER JOIN user_library ul ON rp.user_library_id = ul.id
+        WHERE ul.userId = :userId
+        ORDER BY rp.recorded_at ASC
+    """)
+    fun getReadingProgressByUserId(userId: String): Flow<List<ReadingProgress>>
 }

@@ -15,6 +15,7 @@ import com.example.bibliobit.data.repository.UserDao
 import com.example.bibliobit.data.repository.UserLibraryDao
 import com.example.bibliobit.data.repository.UserLibraryRepository
 import com.example.bibliobit.utils.PreferencesManager
+import com.example.bibliobit.utils.ReadingStreak
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import dagger.Module
@@ -125,5 +126,15 @@ object AppModule {
         firestore: FirebaseFirestore
     ): AuthRepository {
         return AuthRepositoryImpl(firebaseAuth, firestore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideReadingStreakManager(
+        @ApplicationContext context: Context,
+        readingProgressDao: ReadingProgressDao,
+        userLibraryDao: UserLibraryDao
+    ): ReadingStreak {
+        return ReadingStreak(context, readingProgressDao, userLibraryDao)
     }
 }

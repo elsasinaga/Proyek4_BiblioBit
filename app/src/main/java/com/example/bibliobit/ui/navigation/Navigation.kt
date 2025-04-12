@@ -1,5 +1,7 @@
 package com.example.bibliobit.ui.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,6 +52,7 @@ import com.example.bibliobit.ui.yourwishlistbook.YourWishlistBookViewModel
 import com.example.bibliobit.ui.notes.NotesScreen
 import com.example.bibliobit.ui.notes.NotesViewModel
 import com.example.bibliobit.utils.PreferencesManager
+import com.example.bibliobit.utils.ReadingStreak
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -92,11 +95,13 @@ sealed class Screen(val route: String) {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavHost(
     navController: NavHostController,
     preferencesManager: PreferencesManager,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    readingStreak: ReadingStreak
 ) {
     val auth = FirebaseAuth.getInstance()
 
@@ -238,7 +243,12 @@ fun AppNavHost(
                 Column(
                     modifier = contentModifier.fillMaxSize()
                 ) {
-                    HomeScreen()
+                    HomeScreen(
+                        readingStreak = readingStreak,
+                        onNavigateToReadingBook = { userId, bookId ->
+                            navController.navigate(Screen.YourReadingBook.createRoute(userId, bookId))
+                        }
+                    )
                 }
             }
         }

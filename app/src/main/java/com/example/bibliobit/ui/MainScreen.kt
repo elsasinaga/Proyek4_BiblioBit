@@ -1,5 +1,7 @@
 package com.example.bibliobit.ui
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -21,12 +23,15 @@ import com.example.bibliobit.ui.components.BottomNavigationBar
 import com.example.bibliobit.ui.navigation.AppNavHost
 import com.example.bibliobit.ui.navigation.Screen
 import com.example.bibliobit.utils.PreferencesManager
+import com.example.bibliobit.utils.ReadingStreak
 import kotlinx.coroutines.delay
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun MainScreen(
     navController: NavHostController = rememberNavController(),
-    preferencesManager: PreferencesManager
+    preferencesManager: PreferencesManager,
+    readingStreak: ReadingStreak
 ) {
     var isLoading by remember { mutableStateOf(true) }
 
@@ -115,7 +120,8 @@ fun MainScreen(
 //        }
         AppNavHost(
             navController = navController,
-            preferencesManager = preferencesManager
+            preferencesManager = preferencesManager,
+            readingStreak = readingStreak
         )
     }
 }

@@ -32,8 +32,8 @@ fun StatisticFilterButton(
         modifier = modifier
             .fillMaxWidth()
             .wrapContentHeight()
-            .shadow(4.dp, RoundedCornerShape(16.dp))
-            .clip(RoundedCornerShape(16.dp))
+            .shadow(4.dp, RoundedCornerShape(30.dp))
+            .clip(RoundedCornerShape(30.dp))
             .background(hijau2)
             .padding(horizontal = 8.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -62,7 +62,7 @@ fun StatisticFilter(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(28.dp))
             .background(if (isSelected) activeColor else inactiveColor)
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 10.dp),

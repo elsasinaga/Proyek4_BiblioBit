@@ -24,6 +24,7 @@ import com.example.bibliobit.ui.addbook.AddBookScreen
 import com.example.bibliobit.ui.addbook.AddBookViewModel
 import com.example.bibliobit.ui.bookdetail.BookDetailScreen
 import com.example.bibliobit.ui.bookdetail.BookDetailViewModel
+import com.example.bibliobit.ui.components.AppScaffold
 import com.example.bibliobit.ui.forgotpassword.ForgotPasswordScreen
 import com.example.bibliobit.ui.forgotpassword.ForgotPasswordViewModel
 import com.example.bibliobit.ui.library.LibraryScreen
@@ -38,6 +39,16 @@ import com.example.bibliobit.ui.readingprogress.AddReadingProgressScreen
 import com.example.bibliobit.ui.readingprogress.ReadingProgressViewModel
 import com.example.bibliobit.ui.readingprogress.YourProgressReadingScreen
 import com.example.bibliobit.ui.readingprogress.YourReadingBookScreen
+import com.example.bibliobit.ui.statistic.StatisticScreen
+import com.example.bibliobit.ui.statistic.StatisticViewModel
+import com.example.bibliobit.ui.yourfinishbook.AddYourRatingScreen
+import com.example.bibliobit.ui.yourfinishbook.AddYourRatingViewModel
+import com.example.bibliobit.ui.yourfinishbook.YourFinishBookScreen
+import com.example.bibliobit.ui.yourfinishbook.YourFinishBookViewModel
+import com.example.bibliobit.ui.yourwishlistbook.YourWishlistBookScreen
+import com.example.bibliobit.ui.yourwishlistbook.YourWishlistBookViewModel
+import com.example.bibliobit.ui.notes.NotesScreen
+import com.example.bibliobit.ui.notes.NotesViewModel
 import com.example.bibliobit.utils.PreferencesManager
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.first
@@ -66,6 +77,18 @@ sealed class Screen(val route: String) {
     object YourProgressReading : Screen("your_progress_reading/{userLibraryId}/{bookTitle}/{totalPages}") {
         fun createRoute(userLibraryId: Long, bookTitle: String, totalPages: Int) =
             "your_progress_reading/$userLibraryId/$bookTitle/$totalPages"
+    }
+    object YourWishlistBook : Screen("your_wishlist_book/{userId}/{bookId}") {
+        fun createRoute(userId: String, bookId: Long) = "your_wishlist_book/$userId/$bookId"
+    }
+    object YourFinishBook : Screen("your_finish_book/{userId}/{bookId}") {
+        fun createRoute(userId: String, bookId: Long) = "your_finish_book/$userId/$bookId"
+    }
+    object AddYourRating : Screen("add_your_rating/{userId}/{bookId}/{bookTitle}") {
+        fun createRoute(userId: String, bookId: Long, bookTitle: String) = "add_your_rating/$userId/$bookId/$bookTitle"
+    }
+    object Notes : Screen("notes/{userLibraryId}/{bookTitle}") {
+        fun createRoute(userLibraryId: Long, bookTitle: String) = "notes/$userLibraryId/$bookTitle"
     }
 }
 
@@ -110,62 +133,134 @@ fun AppNavHost(
                 }
             }
 
-            OnboardingScreen(
-                onBoardingComplete = {
-                    isOnboardingFinished = true
+            AppScaffold(
+                navController = navController,
+                title = "Onboarding",
+                showTopBar = false,
+                showBackButton = false,
+                showBottomBar = false,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    OnboardingScreen(
+                        onBoardingComplete = {
+                            isOnboardingFinished = true
+                        }
+                    )
                 }
-            )
+            }
         }
 
         composable(Screen.Login.route) {
             val loginViewModel: LoginViewModel = hiltViewModel()
-            LoginScreen(
-                viewModel = loginViewModel,
-                onLoginSuccess = {
-                    navController.navigate(Screen.Home.route) {
-                        popUpTo(Screen.Login.route) { inclusive = true }
-                    }
-                },
-                onNavigateToRegister = { navController.navigate(Screen.Register.route) },
-                onNavigateToForgotPassword = { navController.navigate(Screen.ForgotPassword.route) }
-            )
+            AppScaffold(
+                navController = navController,
+                title = "Login",
+                showTopBar = false,
+                showBackButton = false,
+                showBottomBar = false,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    LoginScreen(
+                        viewModel = loginViewModel,
+                        onLoginSuccess = {
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Login.route) { inclusive = true }
+                            }
+                        },
+                        onNavigateToRegister = { navController.navigate(Screen.Register.route) },
+                        onNavigateToForgotPassword = { navController.navigate(Screen.ForgotPassword.route) }
+                    )
+                }
+            }
         }
 
         composable(Screen.Register.route) {
             val registerViewModel: RegisterViewModel = hiltViewModel()
-            RegisterScreen(
-                viewModel = registerViewModel,
-                onRegisterSuccess = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(Screen.Register.route) { inclusive = true }
-                    }
-                },
-                onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(Screen.Register.route) { inclusive = true }
-                    }
+            AppScaffold(
+                navController = navController,
+                title = "Register",
+                showTopBar = false,
+                showBackButton = false,
+                showBottomBar = false,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    RegisterScreen(
+                        viewModel = registerViewModel,
+                        onRegisterSuccess = {
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(Screen.Register.route) { inclusive = true }
+                            }
+                        },
+                        onNavigateToLogin = {
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(Screen.Register.route) { inclusive = true }
+                            }
+                        }
+                    )
                 }
-            )
+            }
         }
 
         composable(Screen.ForgotPassword.route) {
             val forgotPasswordViewModel: ForgotPasswordViewModel = hiltViewModel()
-            ForgotPasswordScreen(
-                viewModel = forgotPasswordViewModel,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            AppScaffold(
+                navController = navController,
+                title = "Forgot Password",
+                showTopBar = false,
+                showBackButton = false,
+                showBottomBar = false,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    ForgotPasswordScreen(
+                        viewModel = forgotPasswordViewModel,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
         }
 
         composable(Screen.Home.route) {
-            HomeScreen()
+            AppScaffold(
+                navController = navController,
+                title = "Home",
+                showTopBar = true,
+                showBackButton = false,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    HomeScreen()
+                }
+            }
         }
 
         composable(Screen.Add.route) {
             val viewModel: AddBookViewModel = hiltViewModel()
-            AddBookScreen(
+            AppScaffold(
                 navController = navController,
-                viewModel = viewModel
-            )
+                title = "Add Book",
+                showTopBar = true,
+                showBackButton = false,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    AddBookScreen(
+                        navController = navController,
+                        viewModel = viewModel
+                    )
+                }
+            }
         }
 
         composable(
@@ -174,11 +269,23 @@ fun AppNavHost(
         ) { backStackEntry ->
             val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
             val viewModel: BookDetailViewModel = hiltViewModel()
-            BookDetailScreen(
-                bookId = bookId,
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() }
-            )
+            AppScaffold(
+                navController = navController,
+                title = "Book Details",
+                showTopBar = true,
+                showBackButton = true,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    BookDetailScreen(
+                        bookId = bookId,
+                        viewModel = viewModel,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
         }
 
         composable(
@@ -191,35 +298,48 @@ fun AppNavHost(
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
             val viewModel: ReadingProgressViewModel = hiltViewModel()
-            YourReadingBookScreen(
-                userId = userId,
-                bookId = bookId,
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() },
-                onNavigateToAddProgress = { userLibraryId, bookTitle, totalPages, uid, bid ->
-                    navController.navigate(
-                        Screen.AddReadingProgress.createRoute(
-                            userLibraryId = userLibraryId,
-                            bookTitle = bookTitle,
-                            totalPages = totalPages,
-                            userId = uid,
-                            bookId = bid
-                        )
-                    )
-                },
-                onNavigateToSeeProgress = { userLibraryId ->
-                    val book = viewModel.book.value
-                    if (book != null) {
-                        navController.navigate(
-                            Screen.YourProgressReading.createRoute(
-                                userLibraryId = userLibraryId,
-                                bookTitle = book.title,
-                                totalPages = book.pages ?: 0
+            AppScaffold(
+                navController = navController,
+                title = "Your Reading Book",
+                showTopBar = true,
+                showBackButton = true,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    YourReadingBookScreen(
+                        userId = userId,
+                        bookId = bookId,
+                        viewModel = viewModel,
+                        onNavigateBack = { navController.popBackStack() },
+                        onNavigateToAddProgress = { userLibraryId, bookTitle, totalPages, uid, bid ->
+                            navController.navigate(
+                                Screen.AddReadingProgress.createRoute(
+                                    userLibraryId = userLibraryId,
+                                    bookTitle = bookTitle,
+                                    totalPages = totalPages,
+                                    userId = uid,
+                                    bookId = bid
+                                )
                             )
-                        )
-                    }
+                        },
+                        onNavigateToSeeProgress = { userLibraryId ->
+                            val book = viewModel.book.value
+                            if (book != null) {
+                                navController.navigate(
+                                    Screen.YourProgressReading.createRoute(
+                                        userLibraryId = userLibraryId,
+                                        bookTitle = book.title,
+                                        totalPages = book.pages ?: 0
+                                    )
+                                )
+                            }
+                        },
+                        navController = navController
+                    )
                 }
-            )
+            }
         }
 
         composable(
@@ -238,15 +358,27 @@ fun AppNavHost(
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
             val viewModel: ReadingProgressViewModel = hiltViewModel()
-            AddReadingProgressScreen(
-                userLibraryId = userLibraryId,
-                bookTitle = bookTitle,
-                totalPages = totalPages,
-                userId = userId,
-                bookId = bookId,
-                viewModel = viewModel,
-                navController = navController
-            )
+            AppScaffold(
+                navController = navController,
+                title = "Add Reading Progress",
+                showTopBar = true,
+                showBackButton = false,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    AddReadingProgressScreen(
+                        userLibraryId = userLibraryId,
+                        bookTitle = bookTitle,
+                        totalPages = totalPages,
+                        userId = userId,
+                        bookId = bookId,
+                        viewModel = viewModel,
+                        navController = navController
+                    )
+                }
+            }
         }
 
         composable(
@@ -261,43 +393,213 @@ fun AppNavHost(
             val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: ""
             val totalPages = backStackEntry.arguments?.getInt("totalPages") ?: 0
             val viewModel: ReadingProgressViewModel = hiltViewModel()
-            YourProgressReadingScreen(
-                userLibraryId = userLibraryId,
-                bookTitle = bookTitle,
-                totalPages = totalPages,
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() }
+            AppScaffold(
+                navController = navController,
+                title = "Your Progress Reading",
+                showTopBar = true,
+                showBackButton = true,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    YourProgressReadingScreen(
+                        userLibraryId = userLibraryId,
+                        bookTitle = bookTitle,
+                        totalPages = totalPages,
+                        viewModel = viewModel,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
+        }
+
+        composable(
+            route = Screen.YourWishlistBook.route,
+            arguments = listOf(
+                navArgument("userId") { type = androidx.navigation.NavType.StringType },
+                navArgument("bookId") { type = androidx.navigation.NavType.LongType }
             )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val viewModel: YourWishlistBookViewModel = hiltViewModel()
+            AppScaffold(
+                navController = navController,
+                title = "Your Wishlist Book",
+                showTopBar = true,
+                showBackButton = true,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    YourWishlistBookScreen(
+                        userId = userId,
+                        bookId = bookId,
+                        viewModel = viewModel,
+                        navController = navController, // Tambahkan navController
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
+        }
+
+        composable(
+            route = Screen.YourFinishBook.route,
+            arguments = listOf(
+                navArgument("userId") { type = androidx.navigation.NavType.StringType },
+                navArgument("bookId") { type = androidx.navigation.NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val viewModel: YourFinishBookViewModel = hiltViewModel()
+            AppScaffold(
+                navController = navController,
+                title = "Your Finish Book",
+                showTopBar = true,
+                showBackButton = true,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    YourFinishBookScreen(
+                        userId = userId,
+                        bookId = bookId,
+                        viewModel = viewModel,
+                        navController = navController,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
+        }
+
+        composable(
+            route = Screen.AddYourRating.route,
+            arguments = listOf(
+                navArgument("userId") { type = androidx.navigation.NavType.StringType },
+                navArgument("bookId") { type = androidx.navigation.NavType.LongType },
+                navArgument("bookTitle") { type = androidx.navigation.NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: ""
+            val viewModel: AddYourRatingViewModel = hiltViewModel()
+            AppScaffold(
+                navController = navController,
+                title = "Add Your Rating",
+                showTopBar = true,
+                showBackButton = true,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    AddYourRatingScreen(
+                        userId = userId,
+                        bookId = bookId,
+                        bookTitle = bookTitle,
+                        viewModel = viewModel,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
+        }
+
+        composable(
+            route = Screen.Notes.route,
+            arguments = listOf(
+                navArgument("userLibraryId") { type = androidx.navigation.NavType.LongType },
+                navArgument("bookTitle") { type = androidx.navigation.NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val userLibraryId = backStackEntry.arguments?.getLong("userLibraryId") ?: 0L
+            val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: ""
+            val viewModel: NotesViewModel = hiltViewModel()
+            AppScaffold(
+                navController = navController,
+                title = "Notes",
+                showTopBar = true,
+                showBackButton = true,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    NotesScreen(
+                        userLibraryId = userLibraryId,
+                        bookTitle = bookTitle,
+                        viewModel = viewModel,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
+            }
         }
 
         composable(Screen.Statistic.route) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = "Statistic Screen")
+            val viewModel: StatisticViewModel = hiltViewModel()
+            AppScaffold(
+                navController = navController,
+                title = "Statistic",
+                showTopBar = true,
+                showBackButton = false,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize(),
+                ) {
+                    StatisticScreen(
+                        viewModel = viewModel
+                    )
+                }
             }
         }
 
         composable(Screen.Library.route) {
             val viewModel: LibraryViewModel = hiltViewModel()
-            LibraryScreen(
+            AppScaffold(
                 navController = navController,
-                viewModel = viewModel
-            )
+                title = "Library",
+                showTopBar = true,
+                showBackButton = false,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    LibraryScreen(
+                        navController = navController,
+                        viewModel = viewModel
+                    )
+                }
+            }
         }
 
         composable(Screen.Profile.route) {
-            ProfileScreen(
-                modifier = Modifier,
-                onNavigateToLogin = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
-                        launchSingleTop = true
-                    }
+            AppScaffold(
+                navController = navController,
+                title = "Profile",
+                showTopBar = true,
+                showBackButton = false,
+                showBottomBar = true,
+            ) { contentModifier ->
+                Column(
+                    modifier = contentModifier.fillMaxSize()
+                ) {
+                    ProfileScreen(
+                        modifier = Modifier,
+                        onNavigateToLogin = {
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
                 }
-            )
+            }
         }
     }
 }

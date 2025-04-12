@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <external-path name="external_files" path="Pictures" />
+    <!-- Path untuk penyimpanan internal aplikasi -->
+    <files-path name="note_images" path="."/>
+
+    <!-- Path untuk penyimpanan eksternal (opsional, jika masih diperlukan untuk fitur lain) -->
+    <external-path name="external_files" path="Pictures"/>
+
+    <files-path name="camera_photos" path="." />
 </paths>

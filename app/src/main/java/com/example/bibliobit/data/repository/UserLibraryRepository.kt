@@ -40,4 +40,13 @@ class UserLibraryRepository @Inject constructor(
     suspend fun deleteUserLibrary(userId: String, bookId: Long) {
         userLibraryDao.deleteUserLibrary(userId, bookId)
     }
+
+    // Tambahkan metode untuk memperbarui status buku
+    suspend fun updateUserLibraryStatus(userId: String, bookId: Long, status: BookStatus) {
+        val userLibrary = getUserLibraryByBookId(userId, bookId)
+        if (userLibrary != null) {
+            val updatedUserLibrary = userLibrary.copy(status = status)
+            update(updatedUserLibrary)
+        }
+    }
 }

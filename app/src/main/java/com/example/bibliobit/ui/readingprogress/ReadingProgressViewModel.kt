@@ -151,18 +151,87 @@ class ReadingProgressViewModel @Inject constructor(
         }
     }
 
+    fun insertStartReadingProgress(
+        userLibraryId: Long,
+        startDate: Date,
+        lastReadingDate: Date,
+        totalPages: Int
+    ) {
+        viewModelScope.launch {
+            // Buat entri "Start Reading" dengan pageRead = 0
+            val startProgress = ReadingProgress(
+                userLibraryId = userLibraryId,
+                pageRead = 0,
+                recordedAt = startDate
+            )
+            println("Inserting Start Reading Progress: $startProgress")
+            try {
+                readingProgressRepository.insert(startProgress)
+                println("Inserted Start Reading Progress successfully: $startProgress")
+            } catch (e: Exception) {
+                println("Failed to insert Start Reading Progress: ${e.message}")
+            }
+
+            // Perbarui UserLibrary
+            var currentUserLibrary = _userLibrary.value
+            if (currentUserLibrary == null) {
+                println("UserLibrary is null, attempting to reload")
+                currentUserLibrary = loadUserLibraryById(userLibraryId)
+            }
+
+            if (currentUserLibrary == null && userId != null && bookId != null) {
+                println("UserLibrary not found, creating a new one")
+                currentUserLibrary = UserLibrary(
+                    id = userLibraryId,
+                    userId = userId!!,
+                    bookId = bookId!!,
+                    status = BookStatus.READING,
+                    lastPageRead = 0,
+                    updatedAt = startDate,
+                    rating = null
+                )
+                userLibraryRepository.insert(currentUserLibrary)
+                println("Inserted new UserLibrary: $currentUserLibrary")
+            }
+
+            if (currentUserLibrary != null) {
+                val updatedUserLibrary = currentUserLibrary.copy(
+                    lastPageRead = 0,
+                    updatedAt = lastReadingDate,
+                    status = BookStatus.READING
+                )
+                userLibraryRepository.update(updatedUserLibrary)
+                _userLibrary.value = updatedUserLibrary
+                println("Updated UserLibrary: $updatedUserLibrary")
+
+                println("Fetching First ReadingProgress for userLibraryId: $userLibraryId")
+                val firstProgress = readingProgressRepository.getFirstReadingProgress(userLibraryId)
+                _firstReadingProgress.value = firstProgress
+                println("Updated FirstReadingProgress: $firstProgress")
+
+                loadReadingDataByUserLibraryId(userLibraryId)
+            } else {
+                println("UserLibrary is still null after reload, cannot update")
+            }
+        }
+    }
+
     fun updateReadingProgress(
         userLibraryId: Long,
         pageRead: Int,
         recordedAt: Date,
         lastReadingDate: Date,
-        isFinished: Boolean
+        isFinished: Boolean,
+        totalPages: Int
     ) {
         viewModelScope.launch {
-            println("Updating ReadingProgress for userLibraryId: $userLibraryId, pageRead: $pageRead, recordedAt: $recordedAt, lastReadingDate: $lastReadingDate")
+            // Jika isFinished true, pastikan pageRead diatur ke totalPages
+            val finalPageRead = if (isFinished && pageRead == 0) totalPages else pageRead
+            println("Updating ReadingProgress for userLibraryId: $userLibraryId, pageRead: $finalPageRead, recordedAt: $recordedAt, lastReadingDate: $lastReadingDate, isFinished: $isFinished, totalPages: $totalPages")
+
             val readingProgress = ReadingProgress(
                 userLibraryId = userLibraryId,
-                pageRead = pageRead,
+                pageRead = finalPageRead,
                 recordedAt = recordedAt
             )
             println("Inserting ReadingProgress: $readingProgress")
@@ -196,7 +265,7 @@ class ReadingProgressViewModel @Inject constructor(
 
             if (currentUserLibrary != null) {
                 val updatedUserLibrary = currentUserLibrary.copy(
-                    lastPageRead = pageRead,
+                    lastPageRead = finalPageRead,
                     updatedAt = lastReadingDate,
                     status = if (isFinished) BookStatus.FINISH else BookStatus.READING
                 )

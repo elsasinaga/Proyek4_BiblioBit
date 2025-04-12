@@ -70,40 +70,9 @@ fun BookDetailScreen(
         return
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Book Details",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 20.sp
-                        ),
-                        color = hitam,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = hitam
-                        )
-                    }
-                },
-                actions = {
-                    Spacer(modifier = Modifier.width(48.dp))
-                }
-            )
-        }
-    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState())
         ) {
@@ -406,4 +375,3 @@ fun BookDetailScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
-}

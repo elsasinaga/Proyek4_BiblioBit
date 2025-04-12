@@ -127,7 +127,8 @@ fun ReadingBookItemPreview() {
                 description = null,
                 isbn = null,
                 coverPhotoPath = null,
-                publisher = null
+                publisher = null,
+                pages = 300
             ),
             lastPageRead = 150,
             showDeleteButton = true,

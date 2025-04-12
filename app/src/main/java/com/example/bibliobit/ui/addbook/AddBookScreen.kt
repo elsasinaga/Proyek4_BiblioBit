@@ -253,7 +253,7 @@ fun BookItem(
 @Composable
 fun AddBookDialog(
     onDismiss: () -> Unit,
-    onAddBook: (String, String, String?, Int?, String?, String?, Int?, String?, Uri?) -> Unit
+    onAddBook: (String, String, String?, Int?, String?, String?, Int, String?, Uri?) -> Unit
 ) {
     // State untuk input form
     var title by remember { mutableStateOf("") }
@@ -382,16 +382,34 @@ fun AddBookDialog(
                     onValueChange = { title = it },
                     label = { Text("Title") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    isError = title.isBlank()
                 )
+                if (title.isBlank()) {
+                    Text(
+                        text = "Title is required",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                    )
+                }
 
                 OutlinedTextField(
                     value = author,
                     onValueChange = { author = it },
                     label = { Text("Author") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    isError = author.isBlank()
                 )
+                if (author.isBlank()) {
+                    Text(
+                        text = "Title is required",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                    )
+                }
 
                 OutlinedTextField(
                     value = genre,
@@ -429,11 +447,27 @@ fun AddBookDialog(
                 OutlinedTextField(
                     value = page,
                     onValueChange = { page = it },
-                    label = { Text("Pages (optional)") },
+                    label = { Text("Pages") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    isError = (page.toIntOrNull() == null || page.toIntOrNull()!! <= 0) // Tambahkan indikator error jika tidak valid
                 )
+                if (page.isBlank()) {
+                    Text(
+                        text = "Pages is required",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                    )
+                } else if (page.isNotBlank() && (page.toIntOrNull() == null || page.toIntOrNull()!! <= 0)) {
+                    Text(
+                        text = "Please enter a valid number greater than 0",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                    )
+                }
 
                 OutlinedTextField(
                     value = publisher,
@@ -454,7 +488,7 @@ fun AddBookDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Button(
                         onClick = {
-                            if (title.isNotBlank() && author.isNotBlank()) {
+                            if (title.isNotBlank() && author.isNotBlank() && page.isNotBlank() && page.toIntOrNull() != null && page.toInt() > 0) {
                                 onAddBook(
                                     title,
                                     author,
@@ -462,13 +496,13 @@ fun AddBookDialog(
                                     year.toIntOrNull(),
                                     description.takeIf { it.isNotBlank() },
                                     isbn.takeIf { it.isNotBlank() },
-                                    page.toIntOrNull(),
+                                    page.toInt(),
                                     publisher.takeIf { it.isNotBlank() },
                                     coverPhotoUri
                                 )
                             }
                         },
-                        enabled = title.isNotBlank() && author.isNotBlank()
+                        enabled = title.isNotBlank() && author.isNotBlank() && page.isNotBlank() && page.toIntOrNull() != null && page.toIntOrNull()!! > 0
                     ) {
                         Text("Add")
                     }

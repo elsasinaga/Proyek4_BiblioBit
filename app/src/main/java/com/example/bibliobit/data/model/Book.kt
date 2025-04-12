@@ -12,7 +12,7 @@ data class Book(
     val year: Int?,
     val description: String?,
     val isbn: String?,
-    val pages: Int? = null,
+    val pages: Int,
     val publisher: String?,
     val coverPhotoPath: String? // Path ke file foto cover di penyimpanan internal
 )

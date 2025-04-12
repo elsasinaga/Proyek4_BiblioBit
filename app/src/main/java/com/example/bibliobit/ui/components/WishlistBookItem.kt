@@ -118,7 +118,8 @@ fun WishlistBookItemPreview() {
                 description = null,
                 isbn = null,
                 coverPhotoPath = null,
-                publisher = null
+                publisher = null,
+                pages = 300
             ),
             onDelete = {}
         )

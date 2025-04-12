@@ -114,7 +114,8 @@ fun FinishBookItemPreview() {
                 description = null,
                 isbn = null,
                 coverPhotoPath = null,
-                publisher = null
+                publisher = null,
+                pages = 300
             ),
             rating = 4.5f,
             showDeleteButton = true,

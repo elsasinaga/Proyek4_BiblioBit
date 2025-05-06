@@ -1,5 +1,6 @@
 package com.example.bibliobit.ui.yourfinishbook
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -16,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,6 +46,9 @@ fun YourFinishBookScreen(
     val book by viewModel.book.collectAsState(initial = null)
     val userLibrary by viewModel.userLibrary.collectAsState(initial = null)
     var isFavorite by remember { mutableStateOf(false) }
+
+    // Simpan konteks di variabel
+    val context = LocalContext.current
 
     // Load book dan userLibrary data
     LaunchedEffect(bookId) {
@@ -239,6 +244,7 @@ fun YourFinishBookScreen(
             Button1(
                 onClick = {
                     viewModel.readAgain(userId, bookId)
+                    Toast.makeText(context, "Book set to Reading. Progress reset!", Toast.LENGTH_SHORT).show()
                     navController.navigate(
                         Screen.YourReadingBook.createRoute(userId, bookId)
                     )

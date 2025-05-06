@@ -8,20 +8,22 @@ class ReadingProgressRepository @Inject constructor(
     private val readingProgressDao: ReadingProgressDao
 ) {
     suspend fun insert(readingProgress: ReadingProgress) {
-        println("Inserting ReadingProgress: $readingProgress")
         readingProgressDao.insert(readingProgress)
-        println("Inserted ReadingProgress successfully")
     }
 
     fun getReadingProgressByUserLibraryId(userLibraryId: Long): Flow<List<ReadingProgress>> {
-        println("Fetching ReadingProgress for userLibraryId: $userLibraryId")
         return readingProgressDao.getReadingProgressByUserLibraryId(userLibraryId)
     }
 
     suspend fun getFirstReadingProgress(userLibraryId: Long): ReadingProgress? {
-        println("Fetching First ReadingProgress for userLibraryId: $userLibraryId")
-        val firstProgress = readingProgressDao.getFirstReadingProgress(userLibraryId)
-        println("First ReadingProgress: $firstProgress")
-        return firstProgress
+        return readingProgressDao.getFirstReadingProgress(userLibraryId)
+    }
+
+    fun getReadingProgressByUserId(userId: String): Flow<List<ReadingProgress>> {
+        return readingProgressDao.getReadingProgressByUserId(userId)
+    }
+
+    suspend fun deleteReadingProgressByUserLibraryId(userLibraryId: Long) {
+        readingProgressDao.deleteReadingProgressByUserLibraryId(userLibraryId)
     }
 }

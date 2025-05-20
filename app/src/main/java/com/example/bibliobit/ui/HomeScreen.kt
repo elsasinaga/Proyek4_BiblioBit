@@ -1,3 +1,4 @@
+// HomeScreen.kt
 package com.example.bibliobit.ui
 
 import android.os.Build
@@ -42,33 +43,28 @@ fun HomeScreen(
 ) {
     var currentStreak by remember { mutableStateOf(0) }
     var userName by remember { mutableStateOf("User") }
-    var profileImage by remember { mutableStateOf<String?>(null) } // State untuk URL foto profil
+    var profileImage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val userId = FirebaseAuth.getInstance().currentUser?.uid
 
-    // Ambil data profil dari ProfileViewModel
+    val readingBooks by readingProgressViewModel.readingBooks.collectAsState()
+    val isLoading by readingProgressViewModel.isLoading.collectAsState()
+    val errorMessage by readingProgressViewModel.errorMessage.collectAsState()
+
     val profileData by profileViewModel.profileData.observeAsState()
 
-    // Ambil daftar buku yang sedang dibaca dari ReadingProgressViewModel
-    val readingBooks by readingProgressViewModel.readingBooks.collectAsState(initial = emptyList())
-
-    LaunchedEffect(userId, profileData) {
+    LaunchedEffect(userId) {
         if (userId != null) {
-            // Ambil reading streak
             scope.launch {
                 currentStreak = readingStreak.getCurrentStreak(userId)
             }
-
-            // Ambil nama dan URL foto profil dari profileData
             profileData?.let { profile ->
                 userName = profile.name
-                profileImage = profile.profileImage // Ambil profileImage dari model User
+                profileImage = profile.profileImage
                 Log.d("HomeScreen", "User name: $userName, Profile image URL: $profileImage")
             } ?: run {
                 Log.d("HomeScreen", "Profile data not available")
             }
-
-            // Ambil daftar buku yang sedang dibaca
             readingProgressViewModel.loadReadingBooks(userId)
         } else {
             Log.d("HomeScreen", "No user logged in")
@@ -82,60 +78,36 @@ fun HomeScreen(
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.Start
     ) {
-        // Baris untuk teks "Hello", "Hi, [nama_pengguna]", dan foto profil
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Kolom untuk teks "Hello" dan "Hi, [nama_pengguna]"
-            Column(
-                modifier = Modifier.weight(1f) // Mengambil ruang yang tersedia
-            ) {
-                // Teks "Hello," (normal, tipis)
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Hello,",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Light,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Light),
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
-
-                // Teks "Hi, [nama_pengguna]" (besar, bold)
                 Text(
                     text = "Hi, $userName",
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }
-
-            // Foto profil
             if (profileImage != null) {
                 Image(
                     painter = rememberAsyncImagePainter(profileImage),
                     contentDescription = "Profile Photo",
-                    modifier = Modifier
-                        .size(48.dp) // Ukuran foto profil
-                        .clip(CircleShape), // Membuat foto berbentuk lingkaran
+                    modifier = Modifier.size(48.dp).clip(CircleShape),
                     contentScale = ContentScale.Crop
                 )
             } else {
-                // Placeholder jika foto profil tidak tersedia
                 Surface(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape),
+                    modifier = Modifier.size(48.dp).clip(CircleShape),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = userName.firstOrNull()?.toString() ?: "U", // Ambil inisial nama
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        Text(text = userName.firstOrNull()?.toString() ?: "U")
                     }
                 }
             }
@@ -143,37 +115,17 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Card untuk Reading Streak
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             shape = RoundedCornerShape(12.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF4CAF50) // Warna hijau untuk card
-            )
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF4CAF50))
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.Start
-            ) {
-                // Teks "Reading Streak" (putih, bold, rata kiri)
+            Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.Start) {
                 Text(
                     text = "Reading Streak",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Color.White)
                 )
-
-                // Baris untuk emoji api dan angka streak
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 8.dp)
-                ) {
-                    // Emoji api
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
                     Text(
                         text = "\uD83D\uDD25",
                         fontSize = 32.sp,
@@ -181,15 +133,9 @@ fun HomeScreen(
                         color = Color.White,
                         modifier = Modifier.padding(end = 8.dp)
                     )
-
-                    // Angka streak
                     Text(
                         text = "$currentStreak days",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            fontSize = 32.sp
-                        )
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = Color.White, fontSize = 32.sp)
                     )
                 }
             }
@@ -197,66 +143,61 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Bagian "Continue Reading" dengan tombol panah kanan
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Continue Reading",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = Color.Black)
             )
-
             if (readingBooks.isNotEmpty()) {
-                IconButton(
-                    onClick = {
-                        val firstBook = readingBooks.first()
-                        userId?.let { uid ->
-                            onNavigateToReadingBook(uid, firstBook.bookId)
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ArrowForward,
-                        contentDescription = "Continue Reading",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
+                IconButton(onClick = { userId?.let { onNavigateToReadingBook(it, readingBooks.first().bookId) } }) {
+                    Icon(Icons.Default.ArrowForward, contentDescription = "Continue Reading", tint = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Daftar buku yang sedang dibaca (horizontal scroll)
-        if (readingBooks.isEmpty()) {
-            Text(
-                text = "No books currently being read.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-        } else {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(readingBooks) { readingBook ->
-                    ReadingBookItem(
-                        bookTitle = readingBook.bookTitle,
-                        coverPhotoPath = readingBook.coverPhotoPath,
-                        lastPageRead = readingBook.lastPageRead,
-                        totalPages = readingBook.totalPages,
-                        onClick = {
-                            userId?.let { uid ->
-                                onNavigateToReadingBook(uid, readingBook.bookId)
-                            }
-                        }
+        when {
+            isLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            errorMessage != null -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = errorMessage ?: "Unknown error",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error
                     )
+                }
+            }
+            else -> {
+                if (readingBooks.isEmpty()) {
+                    Text(
+                        text = "No books currently being read.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                } else {
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        items(readingBooks) { readingBook ->
+                            ReadingBookItem(
+                                bookTitle = readingBook.bookTitle,
+                                coverPhotoPath = readingBook.coverPhotoPath,
+                                lastPageRead = readingBook.lastPageRead,
+                                totalPages = readingBook.totalPages,
+                                onClick = { userId?.let { onNavigateToReadingBook(it, readingBook.bookId) } }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -277,7 +218,6 @@ fun ReadingBookItem(
             .clickable { onClick() },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Cover buku
         if (coverPhotoPath != null) {
             Image(
                 painter = rememberAsyncImagePainter(coverPhotoPath),
@@ -307,21 +247,15 @@ fun ReadingBookItem(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-
-        // Judul buku
         Text(
             text = bookTitle,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = FontWeight.Bold
-            ),
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
             maxLines = 2,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(4.dp))
-
-        // Progres membaca
         Text(
             text = "${lastPageRead ?: "Unknown"} / ${totalPages ?: "Unknown"}",
             style = MaterialTheme.typography.bodySmall,
@@ -329,8 +263,6 @@ fun ReadingBookItem(
         )
 
         Spacer(modifier = Modifier.height(4.dp))
-
-        // Progress bar
         LinearProgressIndicator(
             progress = {
                 if (lastPageRead != null && totalPages != null && totalPages > 0) {
@@ -339,9 +271,7 @@ fun ReadingBookItem(
                     0f
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(4.dp),
+            modifier = Modifier.fillMaxWidth().height(4.dp),
             color = Color(0xFF4CAF50),
             trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
         )

@@ -37,7 +37,7 @@ fun ProfileScreen(
 ) {
     val profileData by viewModel.profileData.observeAsState()
     var isEditing by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf(profileData?.name ?: "") }
+    var name by remember { mutableStateOf(profileData?.name ?: "User") }
     var email by remember { mutableStateOf(profileData?.email ?: "") }
     var username by remember { mutableStateOf(profileData?.username ?: "") }
     var profileImagePath by remember { mutableStateOf(profileData?.profileImage ?: "") }
@@ -55,14 +55,15 @@ fun ProfileScreen(
 
     LaunchedEffect(profileData) {
         profileData?.let { profile ->
-            name = profile.name
-            email = profile.email
-            username = profile.username
+            name = profile.name ?: "User"
+            email = profile.email ?: ""
+            username = profile.username ?: ""
             profileImagePath = profile.profileImage ?: ""
+        } ?: run {
+            name = "User"
         }
     }
 
-    // Tampilkan loading jika profileData belum ada
     if (profileData == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -112,7 +113,8 @@ fun ProfileScreen(
                 ) {
                     Text(
                         text = "Upload Photo",
-                        style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -145,12 +147,12 @@ fun ProfileScreen(
                 ) {
                     Button1(
                         onClick = {
-                            isEditing = false // Hanya keluar dari mode editing
+                            isEditing = false
                         },
                         modifier = Modifier
                             .fillMaxWidth(0.3f)
                             .padding(end = 8.dp),
-                        backgroundColor = abu2 // Warna tombol Cancel
+                        backgroundColor = abu2
                     ) {
                         Text(
                             text = "Cancel",
@@ -176,7 +178,6 @@ fun ProfileScreen(
                 }
             } else {
                 Text(text = name, style = MaterialTheme.typography.titleLarge, color = abu3)
-//                Text(text = username, style = MaterialTheme.typography.bodyLarge)
                 Text(text = email, style = MaterialTheme.typography.bodyLarge, color = abu2)
                 Spacer(modifier = Modifier.height(16.dp))
                 Button1(
@@ -185,7 +186,8 @@ fun ProfileScreen(
                 ) {
                     Text(
                         text = "Edit Profile",
-                        style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))
@@ -199,7 +201,8 @@ fun ProfileScreen(
                 ) {
                     Text(
                         text = "Logout",
-                        style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }

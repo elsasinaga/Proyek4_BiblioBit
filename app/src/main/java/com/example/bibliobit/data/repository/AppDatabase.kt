@@ -5,17 +5,13 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.example.bibliobit.data.model.Book
-import com.example.bibliobit.data.model.LocalUser
-import com.example.bibliobit.data.model.Note
-import com.example.bibliobit.data.model.ReadingProgress
-import com.example.bibliobit.data.model.UserLibrary
+import com.example.bibliobit.data.model.*
 import com.example.bibliobit.utils.BookStatusConverter
 import com.example.bibliobit.utils.DateConverter
 
 @Database(
     entities = [LocalUser::class, Book::class, UserLibrary::class, ReadingProgress::class, Note::class],
-    version = 7, // Tetap versi 6 karena belum menjalankan aplikasi
+    version = 7, // Gunakan versi 7
     exportSchema = false
 )
 @TypeConverters(DateConverter::class, BookStatusConverter::class)
@@ -94,10 +90,21 @@ abstract class AppDatabase : RoomDatabase() {
                         `content` TEXT NOT NULL,
                         `image` TEXT,
                         `created_at` INTEGER NOT NULL,
-                        `updated_at` INTEGER, -- Tambahkan kolom updated_at (nullable)
+                        `updated_at` INTEGER,
                         FOREIGN KEY (`user_library_id`) REFERENCES `user_library`(`id`) ON DELETE CASCADE
                     )
                 """.trimIndent())
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Tambahkan is_synced ke semua tabel
+                database.execSQL("ALTER TABLE users ADD COLUMN is_synced INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE books ADD COLUMN is_synced INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE user_library ADD COLUMN is_synced INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE reading_progress ADD COLUMN is_synced INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE notes ADD COLUMN is_synced INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

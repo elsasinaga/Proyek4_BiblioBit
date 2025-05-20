@@ -4,6 +4,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.google.gson.annotations.SerializedName
 import java.util.Date
 
 @Entity(
@@ -28,13 +29,15 @@ import java.util.Date
     ]
 )
 data class UserLibrary(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val userId: String,
-    val bookId: Long,
-    val status: BookStatus,
-    val lastPageRead: Int? = null,
-    val updatedAt: Date,
-    val rating: Float? = null
+    @PrimaryKey(autoGenerate = true)
+    @SerializedName("id") val id: Long = 0,
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("book_id") val bookId: Long,
+    @SerializedName("status") val status: BookStatus,
+    @SerializedName("last_page_read") val lastPageRead: Int? = null,
+    @SerializedName("updated_at") val updatedAt: Date,
+    @SerializedName("rating") val rating: Float? = null,
+    @SerializedName("is_synced") val isSynced: Boolean = false
 ) {
     init {
         if (status != BookStatus.FINISH && rating != null) {

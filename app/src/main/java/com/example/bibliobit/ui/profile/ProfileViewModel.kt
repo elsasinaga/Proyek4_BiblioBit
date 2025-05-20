@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.example.bibliobit.data.model.LocalUser
 import com.example.bibliobit.data.model.User
 import com.example.bibliobit.data.repository.AppDatabase
@@ -40,36 +41,44 @@ class ProfileViewModel @Inject constructor(
             val firebaseUser = auth.currentUser
             if (firebaseUser != null) {
                 val uid = firebaseUser.uid
-                val localUser = db.userDao().getUser(uid)
-                if (localUser != null) {
-                    _profileData.postValue(localUser.toUser())
-                    if (!localUser.isSynced && isOnline()) {
-                        syncLocalToFirestore(localUser)
-                    }
-                } else {
-                    val userDoc = firestore.collection("users").document(uid).get().await()
-                    if (userDoc.exists()) {
-                        val username = userDoc.getString("username") ?: ""
-                        val name = userDoc.getString("name") ?: ""
-                        val profileImage = userDoc.getString("profileImage")
-                        val user = User(
-                            email = firebaseUser.email ?: "",
-                            uid = uid,
-                            username = username,
-                            name = name,
-                            profileImage = profileImage
-                        )
-                        _profileData.postValue(user)
-                        saveToLocal(user, true)
+                // Set default sementara
+                _profileData.postValue(User(email = firebaseUser.email ?: "", uid = uid, name = "User"))
+                try {
+                    val localUser = db.userDao().getUser(uid)
+                    if (localUser != null) {
+                        _profileData.postValue(localUser.toUser())
+                        if (!localUser.isSynced && isOnline()) {
+                            syncLocalToFirestore(localUser)
+                        }
                     } else {
-                        val defaultUser = User(
-                            email = firebaseUser.email ?: "",
-                            uid = uid
-                        )
-                        _profileData.postValue(defaultUser)
-                        saveToLocal(defaultUser, true)
-                        upsertProfileToFirestore(defaultUser)
+                        val userDoc = firestore.collection("users").document(uid).get().await()
+                        if (userDoc.exists()) {
+                            val username = userDoc.getString("username") ?: ""
+                            val name = userDoc.getString("name") ?: "User"
+                            val profileImage = userDoc.getString("profileImage")
+                            val user = User(
+                                email = firebaseUser.email ?: "",
+                                uid = uid,
+                                username = username,
+                                name = name,
+                                profileImage = profileImage
+                            )
+                            _profileData.postValue(user)
+                            saveToLocal(user, true)
+                        } else {
+                            val defaultUser = User(
+                                email = firebaseUser.email ?: "",
+                                uid = uid,
+                                name = "User"
+                            )
+                            _profileData.postValue(defaultUser)
+                            saveToLocal(defaultUser, true)
+                            upsertProfileToFirestore(defaultUser)
+                        }
                     }
+                } catch (e: Exception) {
+                    Log.e("ProfileViewModel", "Error fetching user data: ${e.message}")
+                    _profileData.postValue(User(email = firebaseUser.email ?: "", uid = uid, name = "User"))
                 }
             } else {
                 _profileData.postValue(null)
@@ -127,6 +136,9 @@ class ProfileViewModel @Inject constructor(
                     db.userDao().upsert(user.toLocalUser(true))
                 }
             }
+            .addOnFailureListener { e ->
+                Log.e("ProfileViewModel", "Failed to sync profile to Firestore: ${e.message}")
+            }
     }
 
     private fun syncLocalToFirestore(localUser: LocalUser) {
@@ -142,6 +154,9 @@ class ProfileViewModel @Inject constructor(
                 viewModelScope.launch {
                     db.userDao().upsert(localUser.copy(isSynced = true))
                 }
+            }
+            .addOnFailureListener { e ->
+                Log.e("ProfileViewModel", "Failed to sync local to Firestore: ${e.message}")
             }
     }
 

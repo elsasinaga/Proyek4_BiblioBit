@@ -59,6 +59,8 @@ fun AddBookScreen(
     var showAddBookDialog by remember { mutableStateOf(false) }
     val searchQuery by viewModel.searchQuery.collectAsState()
     val books by viewModel.books.collectAsState(initial = emptyList())
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
     val context = LocalContext.current
 
     Column(
@@ -75,7 +77,7 @@ fun AddBookScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { query ->
-                    viewModel.updateSearchQuery(query) // Perbarui query di ViewModel
+                    viewModel.updateSearchQuery(query)
                 },
                 modifier = Modifier
                     .weight(1f)
@@ -115,27 +117,49 @@ fun AddBookScreen(
             }
         }
 
-        if (books.isEmpty()) {
-            Text(
-                text = "No books added yet",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(books) { book ->
-                    BookItem(
-                        book = book,
-                        onClick = {
-                            navController.navigate(Screen.BookDetail.createRoute(book.id))
-                        }
+        when {
+            isLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            errorMessage != null -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = errorMessage ?: "Unknown error",
+                        color = MaterialTheme.colorScheme.error
                     )
+                    Button(
+                        onClick = { viewModel.clearError() },
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        Text("Try Again")
+                    }
+                }
+            }
+            books.isEmpty() -> {
+                Text(
+                    text = "No books added yet",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+            else -> {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(books) { book ->
+                        BookItem(
+                            book = book,
+                            onClick = {
+                                navController.navigate(Screen.BookDetail.createRoute(book.id))
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -145,12 +169,10 @@ fun AddBookScreen(
         AddBookDialog(
             onDismiss = { showAddBookDialog = false },
             onAddBook = { title, author, genre, year, description, isbn, page, publisher, coverPhotoUri ->
-                // Simpan foto ke penyimpanan internal dan dapatkan path-nya
                 val coverPhotoPath = coverPhotoUri?.let { uri ->
                     FileUtils.savePhotoToInternalStorage(context, uri)
                 }
 
-                // Buat objek Book
                 val book = Book(
                     title = title,
                     author = author,
@@ -160,21 +182,19 @@ fun AddBookScreen(
                     isbn = isbn,
                     pages = page,
                     publisher = publisher,
-                    coverPhotoPath = coverPhotoPath
+                    coverPhotoPath = coverPhotoPath,
+                    isSynced = false
                 )
 
-                // Simpan ke database di background thread
                 CoroutineScope(Dispatchers.IO).launch {
-                    // Sisipkan buku dan dapatkan ID-nya
-                    val insertedBookId = viewModel.insertBookAndGetId(book)
+                    val bookId = viewModel.insertBookAndGetId(book)
                     withContext(Dispatchers.Main) {
-                        // Navigasi ke BookDetailScreen dengan bookId yang baru
-                        navController.navigate(Screen.BookDetail.createRoute(insertedBookId))
+                        if (bookId > 0) {
+                            navController.navigate(Screen.BookDetail.createRoute(bookId))
+                        } // Error akan ditangani oleh ViewModel
                         showAddBookDialog = false
                     }
                 }
-
-                showAddBookDialog = false
             }
         )
     }
@@ -227,7 +247,7 @@ fun BookItem(
             text = book.title,
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontWeight = FontWeight.Bold,
-                color = hitam,
+                color = hitam
             ),
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Start,
@@ -241,7 +261,7 @@ fun BookItem(
             text = book.author,
             style = MaterialTheme.typography.bodySmall.copy(
                 fontWeight = FontWeight.Bold,
-                color = hijau4,
+                color = hijau4
             ),
             textAlign = TextAlign.Start,
             maxLines = 1,
@@ -255,7 +275,6 @@ fun AddBookDialog(
     onDismiss: () -> Unit,
     onAddBook: (String, String, String?, Int?, String?, String?, Int, String?, Uri?) -> Unit
 ) {
-    // State untuk input form
     var title by remember { mutableStateOf("") }
     var author by remember { mutableStateOf("") }
     var genre by remember { mutableStateOf("") }
@@ -266,10 +285,8 @@ fun AddBookDialog(
     var publisher by remember { mutableStateOf("") }
     var coverPhotoUri by remember { mutableStateOf<Uri?>(null) }
 
-    // State untuk menentukan apakah dialog pemilihan sumber foto ditampilkan
     var showPhotoSourceDialog by remember { mutableStateOf(false) }
 
-    // Launcher untuk meminta izin
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -282,19 +299,15 @@ fun AddBookDialog(
 
         if (storageGranted || cameraGranted) {
             showPhotoSourceDialog = true
-        } else {
-            // Tampilkan pesan bahwa izin diperlukan
         }
     }
 
-    // Launcher untuk memilih foto dari galeri
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         coverPhotoUri = uri
     }
 
-    // Launcher untuk mengambil foto dari kamera
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success: Boolean ->
@@ -303,7 +316,6 @@ fun AddBookDialog(
         }
     }
 
-    // Fungsi untuk meminta izin
     fun requestPermissions() {
         val permissions = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -315,7 +327,6 @@ fun AddBookDialog(
         permissionLauncher.launch(permissions.toTypedArray())
     }
 
-    // Fungsi untuk mengambil foto dari kamera (tanpa @Composable)
     fun takePhoto(context: Context, onUriCreated: (Uri) -> Unit) {
         val photoFile = File(
             context.filesDir,
@@ -353,7 +364,6 @@ fun AddBookDialog(
                     color = MaterialTheme.colorScheme.onSurface
                 )
 
-                // Pratinjau gambar dan tombol untuk memilih foto
                 if (coverPhotoUri != null) {
                     Image(
                         painter = rememberAsyncImagePainter(coverPhotoUri),
@@ -404,7 +414,7 @@ fun AddBookDialog(
                 )
                 if (author.isBlank()) {
                     Text(
-                        text = "Title is required",
+                        text = "Author is required",
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.padding(start = 16.dp, top = 4.dp)
@@ -451,7 +461,7 @@ fun AddBookDialog(
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(12.dp),
-                    isError = (page.toIntOrNull() == null || page.toIntOrNull()!! <= 0) // Tambahkan indikator error jika tidak valid
+                    isError = (page.toIntOrNull() == null || page.toIntOrNull()!! <= 0)
                 )
                 if (page.isBlank()) {
                     Text(
@@ -511,7 +521,6 @@ fun AddBookDialog(
         }
     }
 
-    // Dialog untuk memilih sumber foto (galeri atau kamera)
     if (showPhotoSourceDialog) {
         val context = LocalContext.current
         AlertDialog(

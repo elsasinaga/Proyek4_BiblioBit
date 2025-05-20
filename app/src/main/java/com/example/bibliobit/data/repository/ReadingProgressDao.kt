@@ -28,4 +28,7 @@ interface ReadingProgressDao {
 
     @Query("DELETE FROM reading_progress WHERE user_library_id = :userLibraryId")
     suspend fun deleteReadingProgressByUserLibraryId(userLibraryId: Long)
+
+    @Query("SELECT * FROM reading_progress WHERE isSynced = 0")
+    suspend fun getUnsyncedReadingProgress(): List<ReadingProgress>
 }

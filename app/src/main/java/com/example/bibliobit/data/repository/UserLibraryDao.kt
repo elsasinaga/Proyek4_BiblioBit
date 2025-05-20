@@ -20,7 +20,6 @@ interface UserLibraryDao {
     @Query("SELECT * FROM user_library WHERE userId = :userId")
     fun getUserLibrary(userId: String): Flow<List<UserLibrary>>
 
-    // Perbaiki parameter status menjadi BookStatus
     @Query("SELECT * FROM user_library WHERE userId = :userId AND status = :status")
     fun getUserLibraryByStatus(userId: String, status: BookStatus): Flow<List<UserLibrary>>
 
@@ -30,10 +29,12 @@ interface UserLibraryDao {
     @Query("SELECT * FROM user_library WHERE userId = :userId AND bookId = :bookId LIMIT 1")
     suspend fun getUserLibraryByBookId(userId: String, bookId: Long): UserLibrary?
 
-    // Tambahkan metode untuk mengambil UserLibrary berdasarkan id
     @Query("SELECT * FROM user_library WHERE id = :id LIMIT 1")
     suspend fun getUserLibraryById(id: Long): UserLibrary?
 
     @Query("DELETE FROM user_library WHERE userId = :userId AND bookId = :bookId")
     suspend fun deleteUserLibrary(userId: String, bookId: Long)
+
+    @Query("SELECT * FROM user_library WHERE isSynced = 0")
+    suspend fun getUnsyncedUserLibrary(): List<UserLibrary>
 }

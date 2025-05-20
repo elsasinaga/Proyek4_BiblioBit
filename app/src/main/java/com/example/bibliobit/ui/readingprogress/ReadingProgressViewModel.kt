@@ -1,3 +1,4 @@
+// ReadingProgressViewModel.kt
 package com.example.bibliobit.ui.readingprogress
 
 import androidx.lifecycle.ViewModel
@@ -24,8 +25,8 @@ data class ReadingBook(
     val bookId: Long,
     val bookTitle: String,
     val coverPhotoPath: String?,
-    val lastPageRead: Int?, // Ubah dari Int menjadi Int? untuk mendukung nilai nullable
-    val totalPages: Int? // Sudah Int? dari perbaikan sebelumnya
+    val lastPageRead: Int?,
+    val totalPages: Int?
 )
 
 @HiltViewModel
@@ -50,9 +51,14 @@ class ReadingProgressViewModel @Inject constructor(
     private val _daysBetweenStartAndLast = MutableStateFlow<Long>(0L)
     val daysBetweenStartAndLast: StateFlow<Long> = _daysBetweenStartAndLast.asStateFlow()
 
-    // State untuk daftar buku yang sedang dibaca
     private val _readingBooks = MutableStateFlow<List<ReadingBook>>(emptyList())
     val readingBooks: StateFlow<List<ReadingBook>> = _readingBooks.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(true)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     private var userId: String? = null
     private var bookId: Long? = null
@@ -163,30 +169,43 @@ class ReadingProgressViewModel @Inject constructor(
         }
     }
 
-    // Fungsi untuk mengambil daftar buku yang sedang dibaca
     fun loadReadingBooks(userId: String) {
         viewModelScope.launch {
-            println("Loading reading books for userId: $userId")
-            userLibraryRepository.getUserLibrary(userId).collect { userLibraries ->
-                val readingBooks = mutableListOf<ReadingBook>()
-                for (userLibrary in userLibraries) {
-                    if (userLibrary.status == BookStatus.READING) {
-                        val book = bookRepository.getBookById(userLibrary.bookId).firstOrNull()
-                        if (book != null) {
-                            readingBooks.add(
-                                ReadingBook(
-                                    bookId = userLibrary.bookId,
-                                    bookTitle = book.title,
-                                    coverPhotoPath = book.coverPhotoPath,
-                                    lastPageRead = userLibrary.lastPageRead, // Sekarang lastPageRead sudah Int?, jadi tidak ada masalah
-                                    totalPages = book.pages
+            _isLoading.value = true
+            _errorMessage.value = null
+            println("Loading reading books for userId: $userId at 02:47 PM WIB, May 18, 2025")
+            try {
+                // Sinkronkan data dari server sebelum mengambil data lokal
+                bookRepository.syncBooksFromServer()
+                userLibraryRepository.syncUserLibraryFromServer()
+                readingProgressRepository.syncReadingProgressFromServer()
+
+                userLibraryRepository.getUserLibrary(userId).collect { userLibraries ->
+                    val readingBooks = mutableListOf<ReadingBook>()
+                    for (userLibrary in userLibraries) {
+                        if (userLibrary.status == BookStatus.READING) {
+                            val book = bookRepository.getBookById(userLibrary.bookId).firstOrNull()
+                            if (book != null) {
+                                readingBooks.add(
+                                    ReadingBook(
+                                        bookId = userLibrary.bookId,
+                                        bookTitle = book.title,
+                                        coverPhotoPath = book.coverPhotoPath,
+                                        lastPageRead = userLibrary.lastPageRead,
+                                        totalPages = book.pages
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
+                    _readingBooks.value = readingBooks.sortedBy { it.bookTitle }
+                    println("Loaded reading books: $readingBooks at 02:47 PM WIB, May 18, 2025")
                 }
-                _readingBooks.value = readingBooks.sortedBy { it.bookTitle }
-                println("Loaded reading books: $readingBooks")
+            } catch (e: Exception) {
+                _errorMessage.value = "Failed to load reading books: ${e.message}"
+                println("Error loading reading books at 02:47 PM WIB, May 18, 2025: ${e.message}")
+            } finally {
+                _isLoading.value = false
             }
         }
     }
@@ -198,7 +217,6 @@ class ReadingProgressViewModel @Inject constructor(
         totalPages: Int
     ) {
         viewModelScope.launch {
-            // Buat entri "Start Reading" dengan pageRead = 0
             val startProgress = ReadingProgress(
                 userLibraryId = userLibraryId,
                 pageRead = 0,
@@ -212,7 +230,6 @@ class ReadingProgressViewModel @Inject constructor(
                 println("Failed to insert Start Reading Progress: ${e.message}")
             }
 
-            // Perbarui UserLibrary
             var currentUserLibrary = _userLibrary.value
             if (currentUserLibrary == null) {
                 println("UserLibrary is null, attempting to reload")
@@ -265,7 +282,6 @@ class ReadingProgressViewModel @Inject constructor(
         totalPages: Int
     ) {
         viewModelScope.launch {
-            // Jika isFinished true, pastikan pageRead diatur ke totalPages
             val finalPageRead = if (isFinished && pageRead == 0) totalPages else pageRead
             println("Updating ReadingProgress for userLibraryId: $userLibraryId, pageRead: $finalPageRead, recordedAt: $recordedAt, lastReadingDate: $lastReadingDate, isFinished: $isFinished, totalPages: $totalPages")
 

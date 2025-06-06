@@ -31,8 +31,11 @@ import com.example.bibliobit.ui.theme.hijau2
 import com.example.bibliobit.ui.theme.hijau4
 import com.example.bibliobit.ui.theme.hijau5
 import com.example.bibliobit.ui.theme.hitam
+import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,16 +46,30 @@ fun YourReadingBookScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddProgress: (userLibraryId: Long, bookTitle: String, totalPages: Int, userId: String, bookId: Long) -> Unit,
     onNavigateToSeeProgress: (userLibraryId: Long) -> Unit,
-    navController: NavController
+    navController: NavController,
+    token: String? = null // Parameter opsional untuk token, default null
 ) {
     val book by viewModel.book.collectAsState()
     val userLibrary by viewModel.userLibrary.collectAsState()
     val firstReadingProgress by viewModel.firstReadingProgress.collectAsState()
     val daysBetweenStartAndLast by viewModel.daysBetweenStartAndLast.collectAsState()
     var isFavorite by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
-    LaunchedEffect(userId, bookId) {
-        viewModel.initialize(userId, bookId)
+    // Ambil token jika belum disediakan
+    val authToken = remember { mutableStateOf<String?>(token) }
+    LaunchedEffect(Unit) {
+        if (authToken.value == null) {
+            scope.launch {
+                authToken.value = FirebaseAuth.getInstance().currentUser?.getIdToken(true)?.await().toString()
+            }
+        }
+    }
+
+    // Initialize the ViewModel with userId, bookId, dan token
+    LaunchedEffect(userId, bookId, authToken.value) {
+        authToken.value?.let { viewModel.initialize(userId, bookId, it) }
+            ?: println("Token not available for initialization")
     }
 
     if (book == null || userLibrary == null) {

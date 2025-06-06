@@ -1,8 +1,11 @@
 package com.example.bibliobit.network
 
+import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import okhttp3.Interceptor
 import okhttp3.Response
 import javax.inject.Inject
@@ -15,25 +18,30 @@ class AuthInterceptor @Inject constructor(
         val originalRequest = chain.request()
         val requestBuilder = originalRequest.newBuilder()
 
-        // Ambil user yang sedang login
         val user = firebaseAuth.currentUser
+        Log.d("AuthInterceptor", "Current User: ${user?.uid ?: "null"}")
 
-        // Jika user tersedia, ambil token Firebase dan tambahkan ke header Authorization
         if (user != null) {
-            val token = runBlocking {
-                try {
-                    user.getIdToken(true).await().token
-                } catch (e: Exception) {
-                    null
+            val token = try {
+                runBlocking(Dispatchers.IO) { // Tetap gunakan runBlocking untuk kompatibilitas, tapi batasi penggunaannya
+                    user.getIdToken(true).await()?.token
                 }
+            } catch (e: Exception) {
+                Log.e("AuthInterceptor", "Token retrieval failed", e)
+                null
             }
-
-            token?.let {
-                requestBuilder.addHeader("Authorization", "Bearer $it")
+            Log.d("AuthInterceptor", "Retrieved token: $token")
+            if (token != null) {
+                requestBuilder.addHeader("Authorization", "Bearer $token")
+            } else {
+                Log.w("AuthInterceptor", "No valid token available, proceeding without authentication")
             }
+        } else {
+            Log.w("AuthInterceptor", "No user logged in, proceeding without authentication")
         }
 
-        // Lanjutkan request dengan header yang sudah dimodifikasi
-        return chain.proceed(requestBuilder.build())
+        val newRequest = requestBuilder.build()
+        Log.d("AuthInterceptor", "Request URL: ${newRequest.url}") // Log URL untuk debugging
+        return chain.proceed(newRequest)
     }
 }

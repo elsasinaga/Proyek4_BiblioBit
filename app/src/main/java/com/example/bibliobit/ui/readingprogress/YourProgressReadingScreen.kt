@@ -20,8 +20,11 @@ import com.example.bibliobit.ui.theme.abu2
 import com.example.bibliobit.ui.theme.hijau1
 import com.example.bibliobit.ui.theme.hijau5
 import com.example.bibliobit.ui.theme.hitam
+import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,15 +33,28 @@ fun YourProgressReadingScreen(
     bookTitle: String,
     totalPages: Int,
     viewModel: ReadingProgressViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    token: String? = null // Parameter opsional untuk token, default null
 ) {
     val readingProgress by viewModel.readingProgress.collectAsState()
     val firstReadingProgress by viewModel.firstReadingProgress.collectAsState()
     val userLibrary by viewModel.userLibrary.collectAsState()
+    val scope = rememberCoroutineScope()
 
-    // Initialize the ViewModel with userLibraryId
-    LaunchedEffect(userLibraryId) {
-        viewModel.initializeWithUserLibraryId(userLibraryId)
+    // Ambil token jika belum disediakan
+    val authToken = remember { mutableStateOf<String?>(token) }
+    LaunchedEffect(Unit) {
+        if (authToken.value == null) {
+            scope.launch {
+                authToken.value = FirebaseAuth.getInstance().currentUser?.getIdToken(true)?.await().toString()
+            }
+        }
+    }
+
+    // Initialize the ViewModel with userLibraryId and token
+    LaunchedEffect(userLibraryId, authToken.value) {
+        authToken.value?.let { viewModel.initializeWithUserLibraryId(userLibraryId, it) }
+            ?: println("Token not available for initialization")
     }
 
     // Log the readingProgress to debug

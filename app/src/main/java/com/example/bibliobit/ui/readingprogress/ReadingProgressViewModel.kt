@@ -1,4 +1,3 @@
-// ReadingProgressViewModel.kt
 package com.example.bibliobit.ui.readingprogress
 
 import androidx.lifecycle.ViewModel
@@ -7,6 +6,8 @@ import com.example.bibliobit.data.model.Book
 import com.example.bibliobit.data.model.BookStatus
 import com.example.bibliobit.data.model.ReadingProgress
 import com.example.bibliobit.data.model.UserLibrary
+import com.example.bibliobit.data.remote.ApiService
+import com.example.bibliobit.data.remote.UserLibraryResponse
 import com.example.bibliobit.data.repository.BookRepository
 import com.example.bibliobit.data.repository.ReadingProgressRepository
 import com.example.bibliobit.data.repository.UserLibraryRepository
@@ -17,7 +18,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
@@ -33,7 +36,8 @@ data class ReadingBook(
 class ReadingProgressViewModel @Inject constructor(
     private val userLibraryRepository: UserLibraryRepository,
     private val bookRepository: BookRepository,
-    private val readingProgressRepository: ReadingProgressRepository
+    private val readingProgressRepository: ReadingProgressRepository,
+    private val apiService: ApiService
 ) : ViewModel() {
 
     private val _userLibrary = MutableStateFlow<UserLibrary?>(null)
@@ -54,7 +58,7 @@ class ReadingProgressViewModel @Inject constructor(
     private val _readingBooks = MutableStateFlow<List<ReadingBook>>(emptyList())
     val readingBooks: StateFlow<List<ReadingBook>> = _readingBooks.asStateFlow()
 
-    private val _isLoading = MutableStateFlow(true)
+    private val _isLoading = MutableStateFlow<Boolean>(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
@@ -83,24 +87,94 @@ class ReadingProgressViewModel @Inject constructor(
         }
     }
 
-    fun initialize(userId: String, bookId: Long) {
+    fun initialize(userId: String, bookId: Long, token: String) {
         this.userId = userId
         this.bookId = bookId
         viewModelScope.launch {
-            val userLibrary = userLibraryRepository.getUserLibraryByBookId(userId, bookId)
-            if (userLibrary != null) {
-                this@ReadingProgressViewModel.userLibraryId = userLibrary.id
-                println("Initialized with userLibraryId: ${userLibrary.id}")
-                loadReadingDataByUserLibraryId(userLibrary.id)
-            } else {
-                println("UserLibrary not found for userId=$userId, bookId=$bookId")
+            _isLoading.value = true
+            _errorMessage.value = null
+            val dateFormat = SimpleDateFormat("hh:mm a z", Locale.getDefault())
+            val currentTime = dateFormat.format(Date())
+            println("Initializing with userId: $userId, bookId: $bookId at $currentTime")
+
+            try {
+                syncDataFromServer(token)
+
+                val userLibrary = userLibraryRepository.getUserLibraryByBookId(userId, bookId)
+                if (userLibrary != null) {
+                    this@ReadingProgressViewModel.userLibraryId = userLibrary.id
+                    println("Initialized with userLibraryId: ${userLibrary.id}")
+                    loadReadingDataByUserLibraryId(userLibrary.id)
+                } else {
+                    println("UserLibrary not found for userId=$userId, bookId=$bookId")
+                    _errorMessage.value = "Book not found in your reading list"
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Failed to initialize: ${e.message}"
+                println("Error initializing at $currentTime: ${e.message}")
+            } finally {
+                _isLoading.value = false
             }
         }
     }
 
-    fun initializeWithUserLibraryId(userLibraryId: Long) {
+    fun initializeWithUserLibraryId(userLibraryId: Long, token: String) {
         this.userLibraryId = userLibraryId
-        loadReadingDataByUserLibraryId(userLibraryId)
+        viewModelScope.launch {
+            try {
+                syncDataFromServer(token)
+                loadReadingDataByUserLibraryId(userLibraryId)
+            } catch (e: Exception) {
+                _errorMessage.value = "Failed to initialize: ${e.message}"
+                println("Error initializing with userLibraryId=$userLibraryId: ${e.message}")
+            }
+        }
+    }
+
+    private suspend fun syncDataFromServer(token: String) {
+        println("Syncing data from server at ${SimpleDateFormat("hh:mm a z", Locale.getDefault()).format(Date())}")
+        try {
+            val userLibraryResponse = apiService.getUserLibrary(status = BookStatus.READING.name) // Ubah ke .name
+            if (userLibraryResponse.isSuccessful) {
+                val userLibraries = userLibraryResponse.body() ?: emptyList()
+                println("Fetched ${userLibraries.size} user libraries from server")
+
+                val matchingUserLibrary = userLibraries.find { it.userId == userId && it.bookId == bookId }
+                if (matchingUserLibrary != null) {
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault())
+                    dateFormat.timeZone = java.util.TimeZone.getTimeZone("UTC")
+                    val updatedAt = try {
+                        dateFormat.parse(matchingUserLibrary.updatedAt.toString()) ?: Date()
+                    } catch (e: Exception) {
+                        println("Failed to parse updatedAt: ${e.message}, using current date")
+                        Date()
+                    }
+                    val localUserLibrary = UserLibrary(
+                        id = matchingUserLibrary.id,
+                        userId = matchingUserLibrary.userId,
+                        bookId = matchingUserLibrary.bookId,
+                        status = BookStatus.valueOf(matchingUserLibrary.status), // Konversi String ke BookStatus
+                        lastPageRead = matchingUserLibrary.lastPageRead,
+                        updatedAt = updatedAt,
+                        rating = matchingUserLibrary.rating,
+                        createdAt = null,
+                        isSynced = true,
+                        book = matchingUserLibrary.book
+                    )
+                    userLibraryRepository.insert(localUserLibrary)
+                    println("Saved UserLibrary to local database: $localUserLibrary")
+                } else {
+                    println("No matching UserLibrary found for userId=$userId, bookId=$bookId")
+                }
+            } else {
+                println("Failed to fetch user library from server: ${userLibraryResponse.code()} - ${userLibraryResponse.message()}")
+            }
+
+            bookRepository.syncBooksFromServer()
+            readingProgressRepository.syncReadingProgressFromServer()
+        } catch (e: Exception) {
+            println("Error syncing data from server: ${e.message}")
+        }
     }
 
     private suspend fun loadUserLibrary(userId: String, bookId: Long): UserLibrary? {
@@ -169,16 +243,13 @@ class ReadingProgressViewModel @Inject constructor(
         }
     }
 
-    fun loadReadingBooks(userId: String) {
+    fun loadReadingBooks(userId: String, token: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            println("Loading reading books for userId: $userId at 02:47 PM WIB, May 18, 2025")
+            println("Loading reading books for userId: $userId at ${SimpleDateFormat("hh:mm a z", Locale.getDefault()).format(Date())}")
             try {
-                // Sinkronkan data dari server sebelum mengambil data lokal
-                bookRepository.syncBooksFromServer()
-                userLibraryRepository.syncUserLibraryFromServer()
-                readingProgressRepository.syncReadingProgressFromServer()
+                syncDataFromServer(token)
 
                 userLibraryRepository.getUserLibrary(userId).collect { userLibraries ->
                     val readingBooks = mutableListOf<ReadingBook>()
@@ -189,7 +260,7 @@ class ReadingProgressViewModel @Inject constructor(
                                 readingBooks.add(
                                     ReadingBook(
                                         bookId = userLibrary.bookId,
-                                        bookTitle = book.title,
+                                        bookTitle = book.title ?: "Unknown Title",
                                         coverPhotoPath = book.coverPhotoPath,
                                         lastPageRead = userLibrary.lastPageRead,
                                         totalPages = book.pages
@@ -199,11 +270,11 @@ class ReadingProgressViewModel @Inject constructor(
                         }
                     }
                     _readingBooks.value = readingBooks.sortedBy { it.bookTitle }
-                    println("Loaded reading books: $readingBooks at 02:47 PM WIB, May 18, 2025")
+                    println("Loaded reading books: $readingBooks at ${SimpleDateFormat("hh:mm a z", Locale.getDefault()).format(Date())}")
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Failed to load reading books: ${e.message}"
-                println("Error loading reading books at 02:47 PM WIB, May 18, 2025: ${e.message}")
+                println("Error loading reading books at ${SimpleDateFormat("hh:mm a z", Locale.getDefault()).format(Date())}: ${e.message}")
             } finally {
                 _isLoading.value = false
             }
@@ -214,7 +285,8 @@ class ReadingProgressViewModel @Inject constructor(
         userLibraryId: Long,
         startDate: Date,
         lastReadingDate: Date,
-        totalPages: Int
+        totalPages: Int,
+        token: String
     ) {
         viewModelScope.launch {
             val startProgress = ReadingProgress(
@@ -228,30 +300,28 @@ class ReadingProgressViewModel @Inject constructor(
                 println("Inserted Start Reading Progress successfully: $startProgress")
             } catch (e: Exception) {
                 println("Failed to insert Start Reading Progress: ${e.message}")
+                _errorMessage.value = "Failed to save reading progress: ${e.message}"
+                return@launch
             }
 
             var currentUserLibrary = _userLibrary.value
-            if (currentUserLibrary == null) {
-                println("UserLibrary is null, attempting to reload")
-                currentUserLibrary = loadUserLibraryById(userLibraryId)
-            }
-
             if (currentUserLibrary == null && userId != null && bookId != null) {
                 println("UserLibrary not found, creating a new one")
-                currentUserLibrary = UserLibrary(
+                val newUserLibrary = UserLibrary(
                     id = userLibraryId,
                     userId = userId!!,
                     bookId = bookId!!,
                     status = BookStatus.READING,
                     lastPageRead = 0,
                     updatedAt = startDate,
-                    rating = null
+                    rating = null,
+                    createdAt = null,
+                    isSynced = false
                 )
-                userLibraryRepository.insert(currentUserLibrary)
-                println("Inserted new UserLibrary: $currentUserLibrary")
-            }
-
-            if (currentUserLibrary != null) {
+                currentUserLibrary = newUserLibrary
+                userLibraryRepository.insert(newUserLibrary)
+                println("Inserted new UserLibrary locally: $newUserLibrary")
+            } else if (currentUserLibrary != null) {
                 val updatedUserLibrary = currentUserLibrary.copy(
                     lastPageRead = 0,
                     updatedAt = lastReadingDate,
@@ -259,7 +329,39 @@ class ReadingProgressViewModel @Inject constructor(
                 )
                 userLibraryRepository.update(updatedUserLibrary)
                 _userLibrary.value = updatedUserLibrary
-                println("Updated UserLibrary: $updatedUserLibrary")
+                println("Updated existing UserLibrary: $updatedUserLibrary")
+            }
+
+            if (currentUserLibrary != null) {
+                try {
+                    val userLibraryForServer = UserLibraryResponse(
+                        id = 0, // Server akan menghasilkan ID baru
+                        userId = currentUserLibrary.userId,
+                        bookId = currentUserLibrary.bookId,
+                        status = currentUserLibrary.status.name,
+                        lastPageRead = currentUserLibrary.lastPageRead,
+                        rating = currentUserLibrary.rating,
+                        createdAt = null,
+                        updatedAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(currentUserLibrary.updatedAt),
+                        book = currentUserLibrary.book
+                    )
+                    val response = apiService.createUserLibrary(userLibraryForServer)
+                    if (response.isSuccessful) {
+                        val createdUserLibrary = response.body()
+                        println("Successfully created UserLibrary on server: $createdUserLibrary")
+                        createdUserLibrary?.let {
+                            userLibraryRepository.update(it.toUserLibrary().copy(isSynced = true))
+                            _userLibrary.value = it.toUserLibrary().copy(isSynced = true)
+                            this@ReadingProgressViewModel.userLibraryId = it.id
+                        }
+                    } else {
+                        println("Failed to create UserLibrary on server: ${response.code()} - ${response.message()}")
+                        _errorMessage.value = "Failed to sync new book to server: ${response.message()}"
+                    }
+                } catch (e: Exception) {
+                    println("Error creating UserLibrary on server: ${e.message}")
+                    _errorMessage.value = "Error syncing new book to server: ${e.message}"
+                }
 
                 println("Fetching First ReadingProgress for userLibraryId: $userLibraryId")
                 val firstProgress = readingProgressRepository.getFirstReadingProgress(userLibraryId)
@@ -269,6 +371,7 @@ class ReadingProgressViewModel @Inject constructor(
                 loadReadingDataByUserLibraryId(userLibraryId)
             } else {
                 println("UserLibrary is still null after reload, cannot update")
+                _errorMessage.value = "Failed to start reading: User library not found"
             }
         }
     }
@@ -279,7 +382,8 @@ class ReadingProgressViewModel @Inject constructor(
         recordedAt: Date,
         lastReadingDate: Date,
         isFinished: Boolean,
-        totalPages: Int
+        totalPages: Int,
+        token: String
     ) {
         viewModelScope.launch {
             val finalPageRead = if (isFinished && pageRead == 0) totalPages else pageRead
@@ -313,7 +417,9 @@ class ReadingProgressViewModel @Inject constructor(
                     status = BookStatus.READING,
                     lastPageRead = 0,
                     updatedAt = recordedAt,
-                    rating = null
+                    rating = null,
+                    createdAt = null,
+                    isSynced = false
                 )
                 userLibraryRepository.insert(currentUserLibrary)
                 println("Inserted new UserLibrary: $currentUserLibrary")
@@ -328,6 +434,31 @@ class ReadingProgressViewModel @Inject constructor(
                 userLibraryRepository.update(updatedUserLibrary)
                 _userLibrary.value = updatedUserLibrary
                 println("Updated UserLibrary: $updatedUserLibrary")
+
+                try {
+                    val userLibraryForServer = UserLibraryResponse(
+                        id = updatedUserLibrary.id,
+                        userId = updatedUserLibrary.userId,
+                        bookId = updatedUserLibrary.bookId,
+                        status = updatedUserLibrary.status.name,
+                        lastPageRead = updatedUserLibrary.lastPageRead,
+                        rating = updatedUserLibrary.rating,
+                        createdAt = null,
+                        updatedAt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US).format(updatedUserLibrary.updatedAt),
+                        book = updatedUserLibrary.book
+                    )
+                    val response = apiService.updateUserLibrary(
+                        id = userLibraryId,
+                        userLibrary = userLibraryForServer
+                    )
+                    if (response.isSuccessful) {
+                        println("Successfully synced updated UserLibrary to server: ${response.body()}")
+                    } else {
+                        println("Failed to sync updated UserLibrary to server: ${response.code()} - ${response.message()}")
+                    }
+                } catch (e: Exception) {
+                    println("Error syncing updated UserLibrary to server: ${e.message}")
+                }
 
                 println("Fetching First ReadingProgress for userLibraryId: $userLibraryId")
                 val firstProgress = readingProgressRepository.getFirstReadingProgress(userLibraryId)
@@ -348,4 +479,21 @@ class ReadingProgressViewModel @Inject constructor(
             }
         }
     }
+}
+
+// Tambahkan ekstensi untuk konversi UserLibraryResponse ke UserLibrary
+fun UserLibraryResponse.toUserLibrary(): UserLibrary {
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+    return UserLibrary(
+        id = this.id,
+        userId = this.userId,
+        bookId = this.bookId,
+        status = BookStatus.valueOf(this.status),
+        lastPageRead = this.lastPageRead,
+        updatedAt = this.updatedAt?.let { dateFormat.parse(it) } ?: Date(),
+        rating = this.rating,
+        createdAt = this.createdAt?.let { dateFormat.parse(it) },
+        isSynced = true,
+        book = this.book
+    )
 }

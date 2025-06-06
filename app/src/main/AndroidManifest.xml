@@ -3,6 +3,8 @@
 
     <!-- Izin untuk kamera -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
 
     <!-- Deklarasikan bahwa kamera adalah fitur opsional -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />

@@ -23,22 +23,31 @@ class RemoteDataSource @Inject constructor(
     suspend fun getBooks(): List<Book> = handleResponse(apiService.getBooks())
     suspend fun createBook(book: Book): Book = handleResponse(apiService.createBook(book))
     suspend fun updateBook(id: Long, book: Book): Book = handleResponse(apiService.updateBook(id, book))
+    suspend fun updateBookStatus(bookId: Long, status: BookStatus): String {
+        val response = apiService.updateBookStatus(bookId, status)
+        if (response.isSuccessful) {
+            return response.body() ?: throw Exception("Respons kosong")
+        } else {
+            val errorBody = response.errorBody()?.string()
+            throw Exception("Gagal memperbarui status: $errorBody")
+        }
+    }
     suspend fun deleteBook(id: Long) = handleResponse(apiService.deleteBook(id))
     suspend fun syncBooks(books: List<Book>): List<Book> = handleResponse(apiService.syncBooks(books))
-    // RemoteDataSource
     suspend fun getBookById(id: Long): Book = handleResponse(apiService.getBookById(id))
 
-
     // UserLibrary
-    suspend fun getUserLibrary(status: String? = null, query: String? = null): List<UserLibrary> =
+    suspend fun getUserLibrary(status: String? = null, query: String? = null): List<UserLibraryResponse> =
         handleResponse(apiService.getUserLibrary(status, query))
-    suspend fun createUserLibrary(userLibrary: UserLibrary): UserLibrary =
-        handleResponse(apiService.createUserLibrary(userLibrary))
-    suspend fun updateUserLibrary(id: Long, userLibrary: UserLibrary): UserLibrary =
+    suspend fun updateOrCreateUserLibrary(request: UserLibraryRequest): UserLibraryResponse =
+        handleResponse(apiService.updateOrCreateUserLibrary(request))
+    suspend fun updateUserLibrary(id: Long, userLibrary: UserLibraryResponse): UserLibraryResponse =
         handleResponse(apiService.updateUserLibrary(id, userLibrary))
     suspend fun deleteUserLibrary(id: Long) = handleResponse(apiService.deleteUserLibrary(id))
-    suspend fun syncUserLibrary(userLibraries: List<UserLibrary>): List<UserLibrary> =
+    suspend fun syncUserLibrary(userLibraries: List<UserLibraryResponse>): List<UserLibraryResponse> =
         handleResponse(apiService.syncUserLibrary(userLibraries))
+    suspend fun getReadingBooks(userId: String): List<UserLibraryResponse> =
+        handleResponse(apiService.getReadingBooks(userId))
 
     // LocalUser
     suspend fun getLocalUsers(): List<LocalUser> = handleResponse(apiService.getLocalUsers())
@@ -56,9 +65,6 @@ class RemoteDataSource @Inject constructor(
         handleResponse(apiService.createReadingProgress(readingProgress))
     suspend fun syncReadingProgress(readingProgressList: List<ReadingProgress>): List<ReadingProgress> =
         handleResponse(apiService.syncReadingProgress(readingProgressList))
-
-    suspend fun getReadingBooks(userId: String): List<UserLibrary> =
-        handleResponse(apiService.getReadingBooks(userId))
 
     // Note
     suspend fun getNotes(userLibraryId: Long? = null): List<Note> =

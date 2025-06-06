@@ -11,7 +11,7 @@ import com.example.bibliobit.utils.DateConverter
 
 @Database(
     entities = [LocalUser::class, Book::class, UserLibrary::class, ReadingProgress::class, Note::class],
-    version = 7, // Gunakan versi 7
+    version = 9,
     exportSchema = false
 )
 @TypeConverters(DateConverter::class, BookStatusConverter::class)
@@ -105,6 +105,24 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL("ALTER TABLE user_library ADD COLUMN is_synced INTEGER NOT NULL DEFAULT 0")
                 database.execSQL("ALTER TABLE reading_progress ADD COLUMN is_synced INTEGER NOT NULL DEFAULT 0")
                 database.execSQL("ALTER TABLE notes ADD COLUMN is_synced INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+            CREATE TABLE IF NOT EXISTS user_library (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                userId TEXT NOT NULL,
+                bookId INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                lastPageRead INTEGER,
+                updatedAt INTEGER,
+                rating REAL,
+                isSynced INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+                // Tambahkan kolom createdAt ke tabel user_library
+                database.execSQL("ALTER TABLE user_library ADD COLUMN createdAt INTEGER")
             }
         }
     }

@@ -2,18 +2,14 @@ package com.example.bibliobit.ui.navigation
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -21,6 +17,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.bibliobit.data.remote.RemoteDataSource
 import com.example.bibliobit.ui.HomeScreen
 import com.example.bibliobit.ui.addbook.AddBookScreen
 import com.example.bibliobit.ui.addbook.AddBookViewModel
@@ -98,8 +95,9 @@ sealed class Screen(val route: String) {
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavHost(
-    navController: NavHostController,
+    navController: NavHostController = rememberNavController(),
     preferencesManager: PreferencesManager,
+    remoteDataSource: RemoteDataSource, // Tambahkan parameter remoteDataSource
     modifier: Modifier = Modifier,
     readingStreak: ReadingStreak
 ) {
@@ -143,7 +141,7 @@ fun AppNavHost(
                 title = "Onboarding",
                 showTopBar = false,
                 showBackButton = false,
-                showBottomBar = false,
+                showBottomBar = false
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -164,7 +162,7 @@ fun AppNavHost(
                 title = "Login",
                 showTopBar = false,
                 showBackButton = false,
-                showBottomBar = false,
+                showBottomBar = false
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -190,7 +188,7 @@ fun AppNavHost(
                 title = "Register",
                 showTopBar = false,
                 showBackButton = false,
-                showBottomBar = false,
+                showBottomBar = false
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -219,7 +217,7 @@ fun AppNavHost(
                 title = "Forgot Password",
                 showTopBar = false,
                 showBackButton = false,
-                showBottomBar = false,
+                showBottomBar = false
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -238,7 +236,7 @@ fun AppNavHost(
                 title = "Home",
                 showTopBar = true,
                 showBackButton = false,
-                showBottomBar = true,
+                showBottomBar = true
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -260,7 +258,7 @@ fun AppNavHost(
                 title = "Add Book",
                 showTopBar = true,
                 showBackButton = false,
-                showBottomBar = true,
+                showBottomBar = true
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -284,7 +282,7 @@ fun AppNavHost(
                 title = "Book Details",
                 showTopBar = true,
                 showBackButton = true,
-                showBottomBar = true,
+                showBottomBar = true
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -292,6 +290,7 @@ fun AppNavHost(
                     BookDetailScreen(
                         bookId = bookId,
                         viewModel = viewModel,
+                        remoteDataSource = remoteDataSource, // Teruskan remoteDataSource
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }
@@ -313,7 +312,7 @@ fun AppNavHost(
                 title = "Your Reading Book",
                 showTopBar = true,
                 showBackButton = true,
-                showBottomBar = true,
+                showBottomBar = true
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -373,7 +372,7 @@ fun AppNavHost(
                 title = "Add Reading Progress",
                 showTopBar = true,
                 showBackButton = false,
-                showBottomBar = true,
+                showBottomBar = true
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -408,7 +407,7 @@ fun AppNavHost(
                 title = "Your Progress Reading",
                 showTopBar = true,
                 showBackButton = true,
-                showBottomBar = true,
+                showBottomBar = true
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -439,7 +438,7 @@ fun AppNavHost(
                 title = "Your Wishlist Book",
                 showTopBar = true,
                 showBackButton = true,
-                showBottomBar = true,
+                showBottomBar = true
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -448,7 +447,7 @@ fun AppNavHost(
                         userId = userId,
                         bookId = bookId,
                         viewModel = viewModel,
-                        navController = navController, // Tambahkan navController
+                        navController = navController,
                         onNavigateBack = { navController.popBackStack() }
                     )
                 }
@@ -470,7 +469,7 @@ fun AppNavHost(
                 title = "Your Finish Book",
                 showTopBar = true,
                 showBackButton = true,
-                showBottomBar = true,
+                showBottomBar = true
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -503,7 +502,7 @@ fun AppNavHost(
                 title = "Add Your Rating",
                 showTopBar = true,
                 showBackButton = true,
-                showBottomBar = true,
+                showBottomBar = true
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -534,7 +533,7 @@ fun AppNavHost(
                 title = "Notes",
                 showTopBar = true,
                 showBackButton = true,
-                showBottomBar = true,
+                showBottomBar = true
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -556,10 +555,10 @@ fun AppNavHost(
                 title = "Statistic",
                 showTopBar = true,
                 showBackButton = false,
-                showBottomBar = true,
+                showBottomBar = true
             ) { contentModifier ->
                 Column(
-                    modifier = contentModifier.fillMaxSize(),
+                    modifier = contentModifier.fillMaxSize()
                 ) {
                     StatisticScreen(
                         viewModel = viewModel
@@ -575,7 +574,7 @@ fun AppNavHost(
                 title = "Library",
                 showTopBar = true,
                 showBackButton = false,
-                showBottomBar = true,
+                showBottomBar = true
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()
@@ -594,7 +593,7 @@ fun AppNavHost(
                 title = "Profile",
                 showTopBar = true,
                 showBackButton = false,
-                showBottomBar = true,
+                showBottomBar = true
             ) { contentModifier ->
                 Column(
                     modifier = contentModifier.fillMaxSize()

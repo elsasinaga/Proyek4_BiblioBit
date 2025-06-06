@@ -21,7 +21,7 @@ interface UserLibraryDao {
     fun getUserLibrary(userId: String): Flow<List<UserLibrary>>
 
     @Query("SELECT * FROM user_library WHERE userId = :userId AND status = :status")
-    fun getUserLibraryByStatus(userId: String, status: BookStatus): Flow<List<UserLibrary>>
+    fun getUserLibraryByStatus(userId: String, status: String): Flow<List<UserLibrary>>
 
     @Query("SELECT * FROM user_library WHERE userId = :userId AND (SELECT title FROM books WHERE books.id = user_library.bookId) LIKE '%' || :query || '%' OR (SELECT author FROM books WHERE books.id = user_library.bookId) LIKE '%' || :query || '%'")
     fun searchUserLibrary(userId: String, query: String): Flow<List<UserLibrary>>

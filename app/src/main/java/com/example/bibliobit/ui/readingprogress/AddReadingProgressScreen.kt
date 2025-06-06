@@ -22,6 +22,8 @@ import com.example.bibliobit.ui.theme.hijau4
 import com.example.bibliobit.ui.theme.hijau5
 import com.example.bibliobit.ui.theme.hitam
 import com.example.bibliobit.ui.theme.abu2
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -44,8 +46,19 @@ fun AddReadingProgressScreen(
     var currentPage by remember { mutableStateOf("") }
     var isFinished by remember { mutableStateOf(false) }
 
+    // Ambil token autentikasi dari FirebaseAuth
+    val token = remember { mutableStateOf<String?>(null) }
+
     LaunchedEffect(Unit) {
-        viewModel.initializeWithUserLibraryId(userLibraryId)
+        token.value = FirebaseAuth.getInstance().currentUser?.getIdToken(true)?.await().toString()
+        if (token.value != null) {
+            viewModel.initializeWithUserLibraryId(
+                userLibraryId,
+                token = token.value!! // Gunakan token yang sudah didapatkan
+            )
+        } else {
+            Toast.makeText(context, "Failed to get authentication token", Toast.LENGTH_SHORT).show()
+        }
     }
 
     val showStartDateField = firstReadingProgress == null
@@ -53,9 +66,8 @@ fun AddReadingProgressScreen(
     val startDatePickerDialog = remember {
         createDatePickerDialog(
             context = context,
-            maxDate = Date(), // Batasi hingga tanggal hari ini
+            maxDate = Date(),
             onDateSelected = { date ->
-                // Pastikan startDate tidak lebih baru dari lastReadingDate
                 if (date.after(lastReadingDate)) {
                     Toast.makeText(
                         context,
@@ -72,9 +84,8 @@ fun AddReadingProgressScreen(
     val lastReadingDatePickerDialog = remember {
         createDatePickerDialog(
             context = context,
-            maxDate = Date(), // Batasi hingga tanggal hari ini
+            maxDate = Date(),
             onDateSelected = { date ->
-                // Pastikan lastReadingDate tidak lebih lama dari startDate (jika startDate ada)
                 if (startDate != null && date.before(startDate)) {
                     Toast.makeText(
                         context,
@@ -225,21 +236,19 @@ fun AddReadingProgressScreen(
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Row untuk menampung tombol Cancel dan Save
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Tombol Cancel
                     Button1(
                         onClick = {
-                            navController.popBackStack() // Kembali tanpa menyimpan
+                            navController.popBackStack()
                         },
                         modifier = Modifier
-                            .weight(1f) // Membagi ruang secara merata
+                            .weight(1f)
                             .height(40.dp),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        backgroundColor = abu2 // Warna abu-abu untuk tombol Cancel
+                        backgroundColor = abu2
                     ) {
                         Text(
                             text = "Cancel",
@@ -247,12 +256,10 @@ fun AddReadingProgressScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.width(16.dp)) // Jarak antara tombol
+                    Spacer(modifier = Modifier.width(16.dp))
 
-                    // Tombol Save
                     Button1(
                         onClick = {
-                            // Jika "Finish Book" dicentang dan currentPage kosong, gunakan totalPages
                             val pageRead = if (isFinished && currentPage.isEmpty()) {
                                 totalPages
                             } else {
@@ -266,32 +273,36 @@ fun AddReadingProgressScreen(
                                     Toast.makeText(context, "Start date is required for the first progress", Toast.LENGTH_SHORT).show()
                                     return@Button1
                                 }
-                                // Untuk progress pertama, buat entri "Start Reading" dengan pageRead = 0
-                                if (showStartDateField && startDate != null) {
+                                if (showStartDateField && startDate != null && token.value != null) {
                                     viewModel.insertStartReadingProgress(
                                         userLibraryId = userLibraryId,
                                         startDate = startDate!!,
                                         lastReadingDate = lastReadingDate,
-                                        totalPages = totalPages
+                                        totalPages = totalPages,
+                                        token = token.value!! // Tambahkan token
                                     )
                                 }
-                                // Simpan progress aktual dengan lastReadingDate
-                                viewModel.updateReadingProgress(
-                                    userLibraryId = userLibraryId,
-                                    pageRead = pageRead,
-                                    recordedAt = lastReadingDate,
-                                    lastReadingDate = lastReadingDate,
-                                    isFinished = isFinished || pageRead == totalPages,
-                                    totalPages = totalPages
-                                )
-                                navController.popBackStack()
+                                if (token.value != null) {
+                                    viewModel.updateReadingProgress(
+                                        userLibraryId = userLibraryId,
+                                        pageRead = pageRead,
+                                        recordedAt = lastReadingDate,
+                                        lastReadingDate = lastReadingDate,
+                                        isFinished = isFinished || pageRead == totalPages,
+                                        totalPages = totalPages,
+                                        token = token.value!! // Tambahkan token
+                                    )
+                                    navController.popBackStack()
+                                } else {
+                                    Toast.makeText(context, "Failed to get authentication token", Toast.LENGTH_SHORT).show()
+                                }
                             } else {
                                 println("Invalid pageRead: $pageRead, must be between 0 and $totalPages")
                                 Toast.makeText(context, "Invalid page: must be between 0 and $totalPages", Toast.LENGTH_SHORT).show()
                             }
                         },
                         modifier = Modifier
-                            .weight(1f) // Membagi ruang secara merata
+                            .weight(1f)
                             .height(40.dp),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         backgroundColor = hijau4
@@ -327,7 +338,6 @@ private fun createDatePickerDialog(
         calendar.get(Calendar.MONTH),
         calendar.get(Calendar.DAY_OF_MONTH)
     )
-    // Atur tanggal maksimum ke maxDate (hari ini)
     dialog.datePicker.maxDate = maxDate.time
     return dialog
 }

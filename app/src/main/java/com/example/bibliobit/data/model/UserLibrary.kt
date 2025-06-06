@@ -4,7 +4,8 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import com.google.gson.annotations.SerializedName
+import androidx.room.TypeConverters
+import com.example.bibliobit.utils.BookStatusConverter
 import java.util.Date
 
 @Entity(
@@ -28,23 +29,17 @@ import java.util.Date
         Index(value = ["bookId"])
     ]
 )
+@TypeConverters(DateConverter::class, BookStatusConverter::class, BookConverter::class)
 data class UserLibrary(
     @PrimaryKey(autoGenerate = true)
-    @SerializedName("id") val id: Long = 0,
-    @SerializedName("user_id") val userId: String,
-    @SerializedName("book_id") val bookId: Long,
-    @SerializedName("status") val status: BookStatus,
-    @SerializedName("last_page_read") val lastPageRead: Int? = null,
-    @SerializedName("updated_at") val updatedAt: Date,
-    @SerializedName("rating") val rating: Float? = null,
-    @SerializedName("is_synced") val isSynced: Boolean = false
-) {
-    init {
-        if (status != BookStatus.FINISH && rating != null) {
-            throw IllegalArgumentException("Rating hanya boleh diisi jika status adalah FINISH")
-        }
-        if (rating != null && (rating < 0f || rating > 5f)) {
-            throw IllegalArgumentException("Rating harus antara 0 dan 5")
-        }
-    }
-}
+    val id: Long = 0L,
+    val userId: String,
+    val bookId: Long,
+    val status: BookStatus,
+    val lastPageRead: Int? = null,
+    val updatedAt: Date,
+    val rating: Float? = null,
+    val createdAt: Date? = null,
+    val isSynced: Boolean = false,
+    val book: Book? = null
+)

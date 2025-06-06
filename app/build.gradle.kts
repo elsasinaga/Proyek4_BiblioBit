@@ -55,6 +55,7 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.4.0")
     implementation ("androidx.compose.material:material-icons-extended:1.7.1")
     implementation ("androidx.compose.foundation:foundation:1.7.1")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
 
     // Hilt
@@ -64,6 +65,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences.core.jvm)
     implementation(libs.androidx.runtime.livedata)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.media3.common.ktx)
     kapt("com.google.dagger:hilt-android-compiler:2.51.1")
 //    implementation("com.google.dagger:hilt-navigation-compose:1.2.0")
     implementation("androidx.hilt:hilt-navigation-compose:1.0.0")

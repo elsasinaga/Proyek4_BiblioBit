@@ -1,4 +1,3 @@
-// HomeScreen.kt
 package com.example.bibliobit.ui
 
 import android.os.Build
@@ -32,6 +31,7 @@ import com.example.bibliobit.ui.readingprogress.ReadingBook
 import com.example.bibliobit.utils.ReadingStreak
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -46,6 +46,7 @@ fun HomeScreen(
     var profileImage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val userId = FirebaseAuth.getInstance().currentUser?.uid
+    val token = remember { mutableStateOf<String?>(null) }
 
     val readingBooks by readingProgressViewModel.readingBooks.collectAsState()
     val isLoading by readingProgressViewModel.isLoading.collectAsState()
@@ -56,16 +57,25 @@ fun HomeScreen(
     LaunchedEffect(userId) {
         if (userId != null) {
             scope.launch {
+                // Ambil current streak
                 currentStreak = readingStreak.getCurrentStreak(userId)
+
+                // Ambil token autentikasi
+                token.value = FirebaseAuth.getInstance().currentUser?.getIdToken(true)?.await().toString()
+
+                // Ambil data profil
+                profileData?.let { profile ->
+                    userName = profile.name
+                    profileImage = profile.profileImage
+                    Log.d("HomeScreen", "User name: $userName, Profile image URL: $profileImage")
+                } ?: run {
+                    Log.d("HomeScreen", "Profile data not available")
+                }
+
+                // Load reading books jika token tersedia
+                token.value?.let { readingProgressViewModel.loadReadingBooks(userId, it) }
+                    ?: Log.d("HomeScreen", "Failed to get authentication token")
             }
-            profileData?.let { profile ->
-                userName = profile.name
-                profileImage = profile.profileImage
-                Log.d("HomeScreen", "User name: $userName, Profile image URL: $profileImage")
-            } ?: run {
-                Log.d("HomeScreen", "Profile data not available")
-            }
-            readingProgressViewModel.loadReadingBooks(userId)
         } else {
             Log.d("HomeScreen", "No user logged in")
         }

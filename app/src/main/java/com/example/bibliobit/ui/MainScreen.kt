@@ -16,12 +16,10 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.bibliobit.R
-import com.example.bibliobit.ui.components.BottomNavigationBar
+import com.example.bibliobit.data.remote.RemoteDataSource
 import com.example.bibliobit.ui.navigation.AppNavHost
-import com.example.bibliobit.ui.navigation.Screen
 import com.example.bibliobit.utils.PreferencesManager
 import com.example.bibliobit.utils.ReadingStreak
 import kotlinx.coroutines.delay
@@ -31,7 +29,8 @@ import kotlinx.coroutines.delay
 fun MainScreen(
     navController: NavHostController = rememberNavController(),
     preferencesManager: PreferencesManager,
-    readingStreak: ReadingStreak
+    readingStreak: ReadingStreak,
+    remoteDataSource: RemoteDataSource // Tambahkan parameter remoteDataSource
 ) {
     var isLoading by remember { mutableStateOf(true) }
 
@@ -98,30 +97,11 @@ fun MainScreen(
             }
         }
     } else {
-//        val navBackStackEntry by navController.currentBackStackEntryAsState()
-//        val currentRoute = navBackStackEntry?.destination?.route
-//        val routesWithoutBottomBar = listOf(
-//            Screen.Onboarding.route,
-//            Screen.Login.route,
-//            Screen.Register.route,
-//            Screen.ForgotPassword.route
-//        )
-//
-//        Scaffold(
-//            bottomBar = {
-//                if (currentRoute != null && currentRoute !in routesWithoutBottomBar) {
-//                    BottomNavigationBar(navController = navController, currentRoute = currentRoute)
-//                }
-//            }
-//        ) { innerPadding ->
-//            Box(modifier = Modifier.padding(innerPadding)) {
-//                AppNavHost(navController = navController, preferencesManager = preferencesManager)
-//            }
-//        }
         AppNavHost(
             navController = navController,
             preferencesManager = preferencesManager,
-            readingStreak = readingStreak
+            readingStreak = readingStreak,
+            remoteDataSource = remoteDataSource // Teruskan remoteDataSource ke AppNavHost
         )
     }
 }

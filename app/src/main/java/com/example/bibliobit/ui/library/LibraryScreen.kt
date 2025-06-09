@@ -17,7 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.bibliobit.data.model.BookStatus
-import com.example.bibliobit.ui.components.FilterBar
+import com.example.bibliobit.data.model.UserLibrary
 import com.example.bibliobit.ui.components.FinishBookItem
 import com.example.bibliobit.ui.components.ReadingBookItem
 import com.example.bibliobit.ui.components.WishlistBookItem
@@ -32,150 +32,150 @@ fun LibraryScreen(
     navController: NavHostController
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    var selectedFilter by remember { mutableStateOf("all") }
+    // ## PERBAIKAN ##: Gunakan BookStatus? untuk filter, null berarti "all"
+    var selectedFilter by remember { mutableStateOf<BookStatus?>(null) }
     var isDeleteMode by remember { mutableStateOf(false) }
 
-    // Ambil userId dari FirebaseAuth
     LaunchedEffect(Unit) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId != null) {
-            viewModel.setUserId(userId)
+            viewModel.setUserId(userId) // Panggil fungsi yang benar
         }
     }
 
-    // Gunakan LaunchedEffect untuk mengontrol pemanggilan filter dan search
-    LaunchedEffect(selectedFilter, searchQuery) {
-        viewModel.setFilter(selectedFilter)
-        viewModel.setSearchQuery(searchQuery)
-    }
-
-    // Ambil data dari ViewModel
-    val libraryItems by viewModel.libraryItems.collectAsState(initial = emptyList())
+    val libraryItems by viewModel.libraryItems.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-
-        // Filter Bar
-        FilterBar(
+        // Filter Bar (Asumsi komponen ini bisa menerima BookStatus? dan event)
+        LibraryFilterBar(
             selectedFilter = selectedFilter,
-            onFilterSelected = { filter ->
-                selectedFilter = filter
-                viewModel.setFilter(filter)
+            onFilterSelected = { status ->
+                selectedFilter = status
+                viewModel.setFilter(status) // Panggil fungsi yang benar
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .padding(bottom = 16.dp)
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
         )
 
+        // Search Bar dan Tombol Hapus
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight()
-                .padding(bottom = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = {
                     searchQuery = it
-                    viewModel.setSearchQuery(it)
+                    viewModel.setSearchQuery(it) // Panggil fungsi yang benar
                 },
-                modifier = Modifier
-                    .weight(1f), // Mengambil sisa ruang
-                placeholder = { Text("Search books...", style = Typography.bodyLarge) },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search Icon"
-                    )
-                },
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Search my library...", style = Typography.bodyLarge) },
+                leadingIcon = { Icon(Icons.Default.Search, "Search Icon") },
                 shape = RoundedCornerShape(12.dp)
             )
-
-            // Tombol Hapus di Samping Search Bar
             IconButton(
                 onClick = { isDeleteMode = !isDeleteMode },
-                modifier = Modifier
-                    .padding(start = 8.dp)
-                    .size(48.dp)
+                modifier = Modifier.padding(start = 8.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = if (isDeleteMode) "Cancel Delete Mode" else "Enter Delete Mode",
+                    contentDescription = "Toggle Delete Mode",
                     tint = if (isDeleteMode) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                 )
             }
         }
 
-        // Book List
-        if (libraryItems.isEmpty()) {
+        // Loading Indicator atau Daftar Buku
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (libraryItems.isEmpty()) {
             Text(
-                text = "No books in library",
-                style = Typography.bodyLarge,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
+                text = "No books found",
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
                 textAlign = TextAlign.Center
             )
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
+                modifier = Modifier.fillMaxWidth().weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(libraryItems) { (book, userLibrary) ->
+                items(libraryItems, key = { it.id!! }) { userLibrary ->
+                    // ## PERBAIKAN ##: Ambil book dari userLibrary object
+                    val book = userLibrary.book ?: return@items // Lewati jika data buku tidak ada
+
                     Box(
-                        modifier = Modifier
-                            .clickable {
-                                val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-                                when (userLibrary.status) {
-                                    BookStatus.PLAN_TO_READ -> {
-                                        navController.navigate(
-                                            Screen.YourWishlistBook.createRoute(userId, book.id)
-                                        )
-                                    }
-                                    BookStatus.READING -> {
-                                        navController.navigate(
-                                            Screen.YourReadingBook.createRoute(userId, book.id)
-                                        )
-                                    }
-                                    BookStatus.FINISH -> {
-                                        navController.navigate(
-                                            Screen.YourFinishBook.createRoute(userId, book.id)
-                                        ) // Ubah navigasi ke YourFinishBookScreen
-                                    }
-                                }
+                        modifier = Modifier.clickable {
+                            if (!isDeleteMode) {
+                                // Navigasi ke detail buku
+                                navController.navigate(Screen.BookDetail.createRoute(book.id))
                             }
+                        }
                     ) {
+                        // ## PERBAIKAN ##: Gunakan userLibrary.status
                         when (userLibrary.status) {
                             BookStatus.PLAN_TO_READ -> WishlistBookItem(
                                 book = book,
                                 showDeleteButton = isDeleteMode,
-                                onDelete = { viewModel.deleteBookFromLibrary(book.id) })
+                                // ## PERBAIKAN ##: Kirim userLibrary.id yang benar untuk dihapus
+                                onDelete = { viewModel.deleteBookFromLibrary(userLibrary.id!!) }
+                            )
                             BookStatus.READING -> ReadingBookItem(
                                 book = book,
                                 lastPageRead = userLibrary.lastPageRead ?: 0,
-                                totalPages = book.pages ?: 300,
+                                totalPages = book.pages,
                                 showDeleteButton = isDeleteMode,
-                                onDelete = { viewModel.deleteBookFromLibrary(book.id) }
+                                onDelete = { viewModel.deleteBookFromLibrary(userLibrary.id!!) }
                             )
                             BookStatus.FINISH -> FinishBookItem(
                                 book = book,
                                 rating = userLibrary.rating ?: 0f,
                                 showDeleteButton = isDeleteMode,
-                                onDelete = { viewModel.deleteBookFromLibrary(book.id) }
+                                onDelete = { viewModel.deleteBookFromLibrary(userLibrary.id!!) }
                             )
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Contoh komponen FilterBar yang sudah disesuaikan.
+ * Anda bisa menggantinya dengan komponen Anda sendiri.
+ */
+@Composable
+fun LibraryFilterBar(
+    selectedFilter: BookStatus?,
+    onFilterSelected: (BookStatus?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val filters = mapOf(
+        "All" to null,
+        "Wishlist" to BookStatus.PLAN_TO_READ,
+        "Reading" to BookStatus.READING,
+        "Finish" to BookStatus.FINISH
+    )
+
+    ScrollableTabRow(
+        selectedTabIndex = filters.values.indexOf(selectedFilter),
+        modifier = modifier,
+        edgePadding = 0.dp
+    ) {
+        filters.forEach { (label, status) ->
+            Tab(
+                selected = selectedFilter == status,
+                onClick = { onFilterSelected(status) },
+                text = { Text(label) }
+            )
         }
     }
 }

@@ -1,15 +1,19 @@
 package com.example.bibliobit.data.remote
 
-import com.example.bibliobit.data.model.*
+import com.example.bibliobit.data.model.Book
+import com.example.bibliobit.data.model.LocalUser
+import com.example.bibliobit.data.model.ReadingProgress
+import com.example.bibliobit.data.remote.request.UpdateUserLibraryRequest
+import com.example.bibliobit.data.remote.request.UserLibraryRequest
+import com.example.bibliobit.data.remote.response.UserLibraryResponse
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.tasks.await
 import retrofit2.HttpException
 import retrofit2.Response
 import javax.inject.Inject
 
 class RemoteDataSource @Inject constructor(
     private val apiService: ApiService,
-    private val firebaseAuth: FirebaseAuth
+    firebaseAuth: FirebaseAuth
 ) {
     private suspend fun <T> handleResponse(response: Response<T>): T {
         if (response.isSuccessful) {
@@ -21,57 +25,44 @@ class RemoteDataSource @Inject constructor(
 
     // Book
     suspend fun getBooks(): List<Book> = handleResponse(apiService.getBooks())
+    suspend fun getBook(id: Long): Book = handleResponse(apiService.getBookById(id))
     suspend fun createBook(book: Book): Book = handleResponse(apiService.createBook(book))
-    suspend fun updateBook(id: Long, book: Book): Book = handleResponse(apiService.updateBook(id, book))
-    suspend fun updateBookStatus(bookId: Long, status: BookStatus): String {
-        val response = apiService.updateBookStatus(bookId, status)
-        if (response.isSuccessful) {
-            return response.body() ?: throw Exception("Respons kosong")
-        } else {
-            val errorBody = response.errorBody()?.string()
-            throw Exception("Gagal memperbarui status: $errorBody")
-        }
-    }
-    suspend fun deleteBook(id: Long) = handleResponse(apiService.deleteBook(id))
-    suspend fun syncBooks(books: List<Book>): List<Book> = handleResponse(apiService.syncBooks(books))
-    suspend fun getBookById(id: Long): Book = handleResponse(apiService.getBookById(id))
 
     // UserLibrary
-    suspend fun getUserLibrary(status: String? = null, query: String? = null): List<UserLibraryResponse> =
+    suspend fun getUserLibrary(status: String?, query: String?): List<UserLibraryResponse> =
         handleResponse(apiService.getUserLibrary(status, query))
-    suspend fun updateOrCreateUserLibrary(request: UserLibraryRequest): UserLibraryResponse =
-        handleResponse(apiService.updateOrCreateUserLibrary(request))
-    suspend fun updateUserLibrary(id: Long, userLibrary: UserLibraryResponse): UserLibraryResponse =
-        handleResponse(apiService.updateUserLibrary(id, userLibrary))
+
+    suspend fun createUserLibrary(request: UserLibraryRequest): UserLibraryResponse =
+        handleResponse(apiService.createUserLibrary(request))
+
+    suspend fun updateUserLibrary(id: Long, request: UpdateUserLibraryRequest): UserLibraryResponse =
+        handleResponse(apiService.updateUserLibrary(id, request))
+
     suspend fun deleteUserLibrary(id: Long) = handleResponse(apiService.deleteUserLibrary(id))
-    suspend fun syncUserLibrary(userLibraries: List<UserLibraryResponse>): List<UserLibraryResponse> =
-        handleResponse(apiService.syncUserLibrary(userLibraries))
-    suspend fun getReadingBooks(userId: String): List<UserLibraryResponse> =
-        handleResponse(apiService.getReadingBooks(userId))
 
-    // LocalUser
-    suspend fun getLocalUsers(): List<LocalUser> = handleResponse(apiService.getLocalUsers())
-    suspend fun createLocalUser(localUser: LocalUser): LocalUser =
-        handleResponse(apiService.createLocalUser(localUser))
-    suspend fun updateLocalUser(uid: String, localUser: LocalUser): LocalUser =
-        handleResponse(apiService.updateLocalUser(uid, localUser))
-    suspend fun syncLocalUsers(localUsers: List<LocalUser>): List<LocalUser> =
-        handleResponse(apiService.syncLocalUsers(localUsers))
+    suspend fun getUserLibraryById(id: Long): UserLibraryResponse =
+        handleResponse(apiService.getUserLibraryById(id))
 
-    // ReadingProgress
-    suspend fun getReadingProgress(userLibraryId: Long? = null): List<ReadingProgress> =
+    // --- Reading Progress ---
+    suspend fun getReadingProgress(userLibraryId: Long): List<ReadingProgress> =
         handleResponse(apiService.getReadingProgress(userLibraryId))
+
     suspend fun createReadingProgress(readingProgress: ReadingProgress): ReadingProgress =
         handleResponse(apiService.createReadingProgress(readingProgress))
-    suspend fun syncReadingProgress(readingProgressList: List<ReadingProgress>): List<ReadingProgress> =
-        handleResponse(apiService.syncReadingProgress(readingProgressList))
 
-    // Note
-    suspend fun getNotes(userLibraryId: Long? = null): List<Note> =
-        handleResponse(apiService.getNotes(userLibraryId))
-    suspend fun createNote(note: Note): Note = handleResponse(apiService.createNote(note))
-    suspend fun updateNote(id: Long, note: Note): Note = handleResponse(apiService.updateNote(id, note))
-    suspend fun deleteNote(id: Long) = handleResponse(apiService.deleteNote(id))
-    suspend fun syncNotes(notes: List<Note>): List<Note> =
-        handleResponse(apiService.syncNotes(notes))
+    // --- Profile ---
+    suspend fun getProfile(): LocalUser = handleResponse(apiService.getProfile())
+
+    suspend fun updateProfile(name: String, username: String): LocalUser {
+        val requestBody = mapOf("name" to name, "username" to username)
+        return handleResponse(apiService.updateProfile(requestBody))
+    }
+
+    suspend fun updateProfileImage(imagePath: String?): LocalUser {
+        val requestBody = mapOf("profile_image" to imagePath)
+        return handleResponse(apiService.updateProfileImage(requestBody))
+    }
+
+    suspend fun getAllReadingProgress(): List<ReadingProgress> =
+        handleResponse(apiService.getAllReadingProgress())
 }

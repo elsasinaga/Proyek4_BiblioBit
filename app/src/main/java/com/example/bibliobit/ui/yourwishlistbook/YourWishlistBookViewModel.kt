@@ -1,6 +1,5 @@
 package com.example.bibliobit.ui.yourwishlistbook
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.bibliobit.data.model.Book
@@ -12,9 +11,17 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import java.util.Date
 import javax.inject.Inject
+
+// State untuk UI, menggabungkan semua data yang dibutuhkan layar
+data class WishlistBookUiState(
+    val isLoading: Boolean = true,
+    val book: Book? = null,
+    val userLibrary: UserLibrary? = null,
+    val startReadingSuccess: Boolean = false // Flag untuk menandakan sukses
+)
 
 @HiltViewModel
 class YourWishlistBookViewModel @Inject constructor(
@@ -22,47 +29,56 @@ class YourWishlistBookViewModel @Inject constructor(
     private val userLibraryRepository: UserLibraryRepository
 ) : ViewModel() {
 
-    private val _book = MutableStateFlow<Book?>(null)
-    val book: StateFlow<Book?> = _book.asStateFlow()
+    private val _uiState = MutableStateFlow(WishlistBookUiState())
+    val uiState: StateFlow<WishlistBookUiState> = _uiState.asStateFlow()
 
-    private val _userLibrary = MutableStateFlow<UserLibrary?>(null) // Tambahkan state untuk UserLibrary
-    val userLibrary: StateFlow<UserLibrary?> = _userLibrary.asStateFlow()
-
-    fun loadBook(bookId: Long) {
+    /**
+     * Memuat data awal: detail buku dan data library-nya.
+     */
+    fun loadData(bookId: Long) {
         viewModelScope.launch {
+            _uiState.value = WishlistBookUiState(isLoading = true)
             try {
-                val bookData = bookRepository.getBookById(bookId).firstOrNull()
-                _book.value = bookData
-                Log.d("YourWishlistBookViewModel", "Loaded book: $bookData")
-            } catch (e: Exception) {
-                Log.e("YourWishlistBookViewModel", "Error loading book: ${e.message}", e)
-            }
-        }
-    }
+                // Ambil data buku dari server
+                val book = bookRepository.getBookById(bookId)
 
-    fun loadUserLibrary(userId: String, bookId: Long) {
-        viewModelScope.launch {
-            try {
-                val userLibraryData = userLibraryRepository.getUserLibraryByBookId(userId, bookId)
-                _userLibrary.value = userLibraryData
-                Log.d("YourWishlistBookViewModel", "Loaded user library: $userLibraryData")
-            } catch (e: Exception) {
-                Log.e("YourWishlistBookViewModel", "Error loading user library: ${e.message}", e)
-            }
-        }
-    }
+                // Ambil semua data library dan cari yang cocok
+                val allLibraryItems = userLibraryRepository.getUserLibrary()
+                val userLibrary = allLibraryItems.firstOrNull { it.bookId == bookId }
 
-    fun startReading(userId: String, bookId: Long) {
-        viewModelScope.launch {
-            try {
-                userLibraryRepository.updateUserLibraryStatus(
-                    userId = userId,
-                    bookId = bookId,
-                    status = BookStatus.READING
+                _uiState.value = WishlistBookUiState(
+                    isLoading = false,
+                    book = book,
+                    userLibrary = userLibrary
                 )
-                Log.d("YourWishlistBookViewModel", "Book status updated to READING for bookId: $bookId")
             } catch (e: Exception) {
-                Log.e("YourWishlistBookViewModel", "Error updating book status: ${e.message}", e)
+                // Handle error
+            }
+        }
+    }
+
+    /**
+     * Mengubah status buku menjadi 'READING'.
+     */
+    fun startReading() {
+        val currentLibrary = _uiState.value.userLibrary ?: return
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                // Buat salinan objek dengan status yang diperbarui
+                val updatedEntry = currentLibrary.copy(
+                    status = BookStatus.READING,
+                    updatedAt = Date()
+                )
+                // Kirim pembaruan ke server
+                userLibraryRepository.upsertUserLibrary(updatedEntry)
+
+                // Update state untuk menandakan sukses
+                _uiState.value = _uiState.value.copy(isLoading = false, startReadingSuccess = true)
+
+            } catch (e: Exception) {
+                // Handle error
             }
         }
     }

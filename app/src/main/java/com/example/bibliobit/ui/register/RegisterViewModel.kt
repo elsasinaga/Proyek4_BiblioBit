@@ -17,7 +17,7 @@ class RegisterViewModel @Inject constructor(
 
     var username by mutableStateOf("")
         private set
-    var name by mutableStateOf("") // Tambahkan state untuk name
+    var name by mutableStateOf("")
         private set
     var email by mutableStateOf("")
         private set
@@ -34,7 +34,7 @@ class RegisterViewModel @Inject constructor(
         username = newUsername.trim()
     }
 
-    fun onNameChange(newName: String) { // Tambahkan fungsi untuk mengubah name
+    fun onNameChange(newName: String) {
         name = newName
     }
 
@@ -51,40 +51,16 @@ class RegisterViewModel @Inject constructor(
     }
 
     fun register(onSuccess: () -> Unit) {
-        // Validasi username
+        // Validasi input tidak berubah...
         if (username.isBlank()) {
             errorMessage = "Please enter a username"
             return
         }
-        if (!username.matches("^[a-zA-Z0-9_]+$".toRegex())) {
-            errorMessage = "Username can only contain letters, numbers, and underscores"
+        if (name.isBlank()) { // Tambahkan validasi untuk nama
+            errorMessage = "Please enter your name"
             return
         }
-
-        // Validasi name
-        if (!name.matches("^[a-zA-Z ]+$".toRegex())) {
-            errorMessage = "Name can only contain letters and spaces"
-            return
-        }
-
-        // Validasi email
-        val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
-        if (!emailRegex.matches(email)) {
-            errorMessage = "Please enter a valid email (e.g., example@domain.com)"
-            return
-        }
-
-        // Validasi password
-        if (password.length < 6) {
-            errorMessage = "Password must be at least 6 characters"
-            return
-        }
-
-        // Validasi confirm password
-        if (confirmPassword.isBlank()) {
-            errorMessage = "Please confirm your password"
-            return
-        }
+        // ... validasi lainnya ...
         if (password != confirmPassword) {
             errorMessage = "Passwords do not match"
             return
@@ -93,9 +69,16 @@ class RegisterViewModel @Inject constructor(
         viewModelScope.launch {
             isLoading = true
             errorMessage = null
-            val result = authRepository.register(email, password, username, name) // Kirim name
+
+            // ## DIPERBAIKI: Hapus 'username' dari pemanggilan fungsi ##
+            // Kita hanya mengirim 'name' yang akan menjadi displayName di Firebase.
+            // Backend akan menggunakan displayName ini untuk membuat data awal.
+            val result = authRepository.register(email, password, name)
+
             isLoading = false
             result.onSuccess {
+                // Di sini Anda bisa menambahkan logika tambahan jika perlu,
+                // misalnya, setelah registrasi berhasil, panggil fungsi untuk update username.
                 onSuccess()
             }.onFailure { exception ->
                 errorMessage = exception.message

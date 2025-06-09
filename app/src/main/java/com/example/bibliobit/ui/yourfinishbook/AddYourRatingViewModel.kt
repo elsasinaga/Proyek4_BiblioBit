@@ -1,84 +1,76 @@
 package com.example.bibliobit.ui.yourfinishbook
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.bibliobit.data.repository.BookRepository
-import com.example.bibliobit.data.model.Book
-import com.example.bibliobit.data.model.BookStatus
-import com.example.bibliobit.data.model.ReadingProgress
-import com.example.bibliobit.data.repository.ReadingProgressRepository
+import com.example.bibliobit.data.model.UserLibrary
 import com.example.bibliobit.data.repository.UserLibraryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+// State untuk UI, hanya menampung data yang relevan
+data class AddRatingUiState(
+    val isLoading: Boolean = true,
+    val error: String? = null,
+    val userLibrary: UserLibrary? = null,
+    val saveSuccess: Boolean = false
+)
+
 @HiltViewModel
 class AddYourRatingViewModel @Inject constructor(
-    private val readingProgressRepository: ReadingProgressRepository,
-    private val userLibraryRepository: UserLibraryRepository,
-    private val bookRepository: BookRepository // Tambahkan BookRepository
+    // Cukup butuh UserLibraryRepository untuk mengambil data dan menyimpan rating
+    private val userLibraryRepository: UserLibraryRepository
 ) : ViewModel() {
 
-    private val _readingProgress = MutableStateFlow<List<ReadingProgress>>(emptyList())
-    val readingProgress: StateFlow<List<ReadingProgress>> = _readingProgress.asStateFlow()
+    private val _uiState = MutableStateFlow(AddRatingUiState())
+    val uiState: StateFlow<AddRatingUiState> = _uiState.asStateFlow()
 
-    private val _firstReadingProgress = MutableStateFlow<ReadingProgress?>(null)
-    val firstReadingProgress: StateFlow<ReadingProgress?> = _firstReadingProgress.asStateFlow()
-
-    private val _totalPages = MutableStateFlow<Int>(0)
-    val totalPages: StateFlow<Int> = _totalPages.asStateFlow()
-
-    private val _isFinished = MutableStateFlow<Boolean>(false)
-    val isFinished: StateFlow<Boolean> = _isFinished.asStateFlow()
-
-    fun loadReadingProgress(userId: String, bookId: Long) {
+    /**
+     * Memuat data UserLibrary spesifik berdasarkan bookId.
+     */
+    fun loadUserLibrary(bookId: Long) {
         viewModelScope.launch {
+            _uiState.value = AddRatingUiState(isLoading = true)
             try {
-                val userLibrary = userLibraryRepository.getUserLibraryByBookId(userId, bookId)
-                if (userLibrary != null) {
-                    // Ambil data dari repository menggunakan Flow
-                    val progressListFlow = readingProgressRepository.getReadingProgressByUserLibraryId(userLibrary.id)
-                    val progressList = progressListFlow.firstOrNull()?.sortedBy { it.recordedAt } ?: emptyList()
-                    _readingProgress.value = progressList
+                // Ambil seluruh daftar library dari server
+                val allLibraryItems = userLibraryRepository.getUserLibrary()
+                // Cari item yang cocok berdasarkan bookId
+                val targetItem = allLibraryItems.firstOrNull { it.bookId == bookId }
 
-                    // Ambil first reading progress
-                    val firstProgress = readingProgressRepository.getFirstReadingProgress(userLibrary.id)
-                    _firstReadingProgress.value = firstProgress
-
-                    // Ambil totalPages dari Book
-                    val book = bookRepository.getBookById(bookId).firstOrNull()
-                    _totalPages.value = book?.pages ?: 0
-
-                    // Tentukan apakah buku selesai
-                    _isFinished.value = userLibrary.status == BookStatus.FINISH
-
-                    Log.d("AddYourRatingViewModel", "Loaded reading progress: $progressList")
-                    Log.d("AddYourRatingViewModel", "Loaded first reading progress: $firstProgress")
-                    Log.d("AddYourRatingViewModel", "Loaded total pages: ${_totalPages.value}")
-                    Log.d("AddYourRatingViewModel", "Is finished: ${_isFinished.value}")
+                if (targetItem != null) {
+                    _uiState.value = AddRatingUiState(isLoading = false, userLibrary = targetItem)
+                } else {
+                    _uiState.value = AddRatingUiState(isLoading = false, error = "Book not found in your library.")
                 }
             } catch (e: Exception) {
-                Log.e("AddYourRatingViewModel", "Error loading reading progress: ${e.message}", e)
+                _uiState.value = AddRatingUiState(isLoading = false, error = "Failed to load data: ${e.message}")
             }
         }
     }
 
-    fun saveRating(userId: String, bookId: Long, rating: Float) {
+    /**
+     * Menyimpan rating baru ke server.
+     */
+    fun saveRating(rating: Float) {
+        val currentLibraryItem = _uiState.value.userLibrary ?: return
+
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val userLibrary = userLibraryRepository.getUserLibraryByBookId(userId, bookId)
-                if (userLibrary != null) {
-                    val updatedUserLibrary = userLibrary.copy(rating = rating)
-                    userLibraryRepository.update(updatedUserLibrary)
-                    Log.d("AddYourRatingViewModel", "Rating saved: $rating for bookId: $bookId")
-                }
+                // Buat salinan objek dengan rating yang sudah diperbarui
+                val updatedItem = currentLibraryItem.copy(rating = rating)
+
+                // Kirim pembaruan ke server melalui repository
+                userLibraryRepository.upsertUserLibrary(updatedItem)
+
+                // Update state untuk menandakan sukses
+                _uiState.value = _uiState.value.copy(isLoading = false, saveSuccess = true)
+
             } catch (e: Exception) {
-                Log.e("AddYourRatingViewModel", "Error saving rating: ${e.message}", e)
+                _uiState.value = _uiState.value.copy(isLoading = false, error = "Failed to save rating: ${e.message}")
             }
         }
     }

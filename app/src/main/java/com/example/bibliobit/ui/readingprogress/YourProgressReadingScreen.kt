@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,19 +12,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.bibliobit.data.model.BookStatus
+import com.example.bibliobit.data.model.ReadingProgress
 import com.example.bibliobit.ui.theme.abu2
-import com.example.bibliobit.ui.theme.hijau1
 import com.example.bibliobit.ui.theme.hijau5
 import com.example.bibliobit.ui.theme.hitam
-import com.google.firebase.auth.FirebaseAuth
 import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun YourProgressReadingScreen(
     userLibraryId: Long,
@@ -34,36 +27,15 @@ fun YourProgressReadingScreen(
     totalPages: Int,
     viewModel: ReadingProgressViewModel,
     onNavigateBack: () -> Unit,
-    token: String? = null // Parameter opsional untuk token, default null
 ) {
-    val readingProgress by viewModel.readingProgress.collectAsState()
-    val firstReadingProgress by viewModel.firstReadingProgress.collectAsState()
-    val userLibrary by viewModel.userLibrary.collectAsState()
-    val scope = rememberCoroutineScope()
+    // ## DIPERBAIKI: Hanya observe satu state utama ##
+    val uiState by viewModel.uiState.collectAsState()
 
-    // Ambil token jika belum disediakan
-    val authToken = remember { mutableStateOf<String?>(token) }
-    LaunchedEffect(Unit) {
-        if (authToken.value == null) {
-            scope.launch {
-                authToken.value = FirebaseAuth.getInstance().currentUser?.getIdToken(true)?.await().toString()
-            }
-        }
+    // ## DIPERBAIKI: LaunchedEffect disederhanakan ##
+    // Cukup panggil loadData sekali untuk mengambil semua data yang diperlukan
+    LaunchedEffect(key1 = userLibraryId) {
+        viewModel.loadData(userLibraryId)
     }
-
-    // Initialize the ViewModel with userLibraryId and token
-    LaunchedEffect(userLibraryId, authToken.value) {
-        authToken.value?.let { viewModel.initializeWithUserLibraryId(userLibraryId, it) }
-            ?: println("Token not available for initialization")
-    }
-
-    // Log the readingProgress to debug
-    LaunchedEffect(readingProgress) {
-        println("ReadingProgress in YourProgressReadingScreen: $readingProgress")
-    }
-
-    // Check if the book is finished
-    val isFinished = userLibrary?.status == BookStatus.FINISH || (userLibrary?.lastPageRead ?: 0) == totalPages
 
     Column(
         modifier = Modifier
@@ -81,132 +53,133 @@ fun YourProgressReadingScreen(
         )
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Timeline Progress
-        if (readingProgress.isEmpty() || firstReadingProgress == null) {
-            Text(
-                text = "No reading progress yet.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = abu2,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        } else {
-            // First Dot: Start Reading Date
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = hijau5,
-                    modifier = Modifier.size(16.dp)
-                ) {}
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+        // Gunakan when untuk menangani semua kondisi UI dari satu state
+        when {
+            uiState.isLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+            uiState.error != null -> {
+                Text(
+                    text = uiState.error!!,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            else -> {
+                // Tampilkan timeline jika data berhasil dimuat
+                ProgressTimeline(
+                    progressHistory = uiState.progressHistory,
+                    isFinished = uiState.userLibrary?.status == BookStatus.FINISH,
+                    totalPages = totalPages
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun ProgressTimeline(
+    progressHistory: List<ReadingProgress>,
+    isFinished: Boolean,
+    totalPages: Int
+) {
+    // ## DIPERBAIKI: Logika UI dipisah ke Composable sendiri agar lebih rapi ##
+    val firstProgress = progressHistory.firstOrNull()
+
+    if (progressHistory.isEmpty() || firstProgress == null) {
+        Text(
+            text = "No reading progress yet.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = abu2,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+        return
+    }
+
+    // Entri pertama: Mulai Membaca
+    TimelineItem(
+        date = firstProgress.recordedAt,
+        day = 1,
+        description = "Start Reading!"
+    )
+
+    // Entri progres selanjutnya
+    var lastPage = 0
+    progressHistory.forEach { progress ->
+        val pageDiff = progress.pageRead - lastPage
+        TimelineItem(
+            date = progress.recordedAt,
+            day = null, // Hari tidak ditampilkan untuk progres biasa
+            description = "Read until page ${progress.pageRead} (+${pageDiff} pages)"
+        )
+        lastPage = progress.pageRead
+    }
+
+    // Entri terakhir jika sudah selesai
+    if (isFinished) {
+        TimelineItem(
+            date = null, // Tanggal bisa diambil dari userLibrary.updatedAt jika perlu
+            day = null,
+            description = "I've read them all! 🎉"
+        )
+    }
+}
+
+@Composable
+private fun TimelineItem(date: java.util.Date?, day: Int?, description: String) {
+    val dateFormat = remember { SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()) }
+
+    Column {
+        Spacer(modifier = Modifier.height(8.dp))
+        // Garis vertikal
+        Box(
+            modifier = Modifier
+                .width(2.dp)
+                .height(24.dp)
+                .offset(x = 7.dp)
+                .background(hijau5)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Titik timeline
+            Surface(shape = CircleShape, color = hijau5, modifier = Modifier.size(16.dp)) {}
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Konten teks
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = day?.let { "Day $it" } ?: dateFormat.format(date!!),
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                        color = hitam
+                    )
+                    if (day != null && date != null) {
                         Text(
-                            text = "Day 1",
-                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                            color = hitam
-                        )
-                        Text(
-                            text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(firstReadingProgress!!.recordedAt),
+                            text = dateFormat.format(date),
                             style = MaterialTheme.typography.bodyMedium,
                             color = abu2
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Start Reading!",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = hitam
-                    )
                 }
-            }
-
-            // Progress Entries (mulai dari entri kedua, karena entri pertama adalah "Start Reading")
-            readingProgress.drop(1).forEachIndexed { index, progress ->
-                Spacer(modifier = Modifier.height(16.dp))
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .height(32.dp)
-                        .align(Alignment.Start)
-                        .offset(x = 7.dp)
-                        .background(hijau5)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = hitam
                 )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = hijau5,
-                        modifier = Modifier.size(16.dp)
-                    ) {}
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(progress.recordedAt),
-                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                                color = hitam
-                            )
-                            Spacer(modifier = Modifier.width(0.dp))
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        // Jika buku selesai dan pageRead adalah 0, gunakan totalPages
-                        val displayPageRead = if (isFinished && progress.pageRead == 0) totalPages else progress.pageRead
-                        val previousPage = if (index == 0) 0 else (if (isFinished && readingProgress[index].pageRead == 0) totalPages else readingProgress[index].pageRead)
-                        val pageDiff = displayPageRead - previousPage
-                        Text(
-                            text = if (pageDiff >= 0) "Read $displayPageRead Pages (+$pageDiff)" else "Read $displayPageRead Pages ($pageDiff)",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = hitam
-                        )
-                    }
-                }
-            }
-
-            // Display "I've read them all!" if the book is finished
-            if (isFinished) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .height(32.dp)
-                        .align(Alignment.Start)
-                        .offset(x = 7.dp)
-                        .background(hijau5)
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = hijau5,
-                        modifier = Modifier.size(16.dp)
-                    ) {}
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(
-                        text = "I've read them all!",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = hitam
-                    )
-                }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }

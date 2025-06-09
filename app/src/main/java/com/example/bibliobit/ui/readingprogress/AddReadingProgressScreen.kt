@@ -3,341 +3,151 @@ package com.example.bibliobit.ui.readingprogress
 import android.app.DatePickerDialog
 import android.content.Context
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
-import com.example.bibliobit.ui.components.Button1
-import com.example.bibliobit.ui.navigation.Screen
-import com.example.bibliobit.ui.theme.hijau4
-import com.example.bibliobit.ui.theme.hijau5
-import com.example.bibliobit.ui.theme.hitam
-import com.example.bibliobit.ui.theme.abu2
-import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.tasks.await
-import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
-import java.util.Locale
 
 @Composable
 fun AddReadingProgressScreen(
     userLibraryId: Long,
     bookTitle: String,
     totalPages: Int,
-    userId: String,
-    bookId: Long,
     viewModel: ReadingProgressViewModel,
-    navController: NavHostController
+    navController: NavHostController,
+    // Hapus parameter tidak perlu: userId, bookId
 ) {
     val context = LocalContext.current
-    val firstReadingProgress by viewModel.firstReadingProgress.collectAsState()
-    var startDate by remember { mutableStateOf<Date?>(null) }
-    var lastReadingDate by remember { mutableStateOf(Date()) }
+    val uiState by viewModel.uiState.collectAsState()
+
+    // State untuk input form
     var currentPage by remember { mutableStateOf("") }
+    var recordedDate by remember { mutableStateOf(Date()) }
     var isFinished by remember { mutableStateOf(false) }
 
-    // Ambil token autentikasi dari FirebaseAuth
-    val token = remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        token.value = FirebaseAuth.getInstance().currentUser?.getIdToken(true)?.await().toString()
-        if (token.value != null) {
-            viewModel.initializeWithUserLibraryId(
-                userLibraryId,
-                token = token.value!! // Gunakan token yang sudah didapatkan
-            )
-        } else {
-            Toast.makeText(context, "Failed to get authentication token", Toast.LENGTH_SHORT).show()
-        }
+    // Panggil `loadData` sekali saat screen pertama kali dibuat
+    LaunchedEffect(key1 = userLibraryId) {
+        viewModel.loadData(userLibraryId)
     }
 
-    val showStartDateField = firstReadingProgress == null
-
-    val startDatePickerDialog = remember {
-        createDatePickerDialog(
-            context = context,
-            maxDate = Date(),
-            onDateSelected = { date ->
-                if (date.after(lastReadingDate)) {
-                    Toast.makeText(
-                        context,
-                        "Start date cannot be after last reading date",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                } else {
-                    startDate = date
-                }
-            }
-        )
+    // Date Picker Dialog
+    val datePickerDialog = rememberDatePickerDialog(context) { newDate ->
+        recordedDate = newDate
     }
 
-    val lastReadingDatePickerDialog = remember {
-        createDatePickerDialog(
-            context = context,
-            maxDate = Date(),
-            onDateSelected = { date ->
-                if (startDate != null && date.before(startDate)) {
-                    Toast.makeText(
-                        context,
-                        "Last reading date cannot be before start date",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                } else {
-                    lastReadingDate = date
-                }
-            }
-        )
-    }
-
-    Dialog(onDismissRequest = {
-        navController.popBackStack()
-    }) {
+    // UI Utama
+    Dialog(onDismissRequest = { navController.popBackStack() }) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            color = MaterialTheme.colors.surface
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            color = MaterialTheme.colorScheme.surface
         ) {
             Column(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Add Your Progress Reading",
-                    style = MaterialTheme.typography.h6.copy(
-                        fontSize = 20.sp
-                    ),
-                    color = hitam
-                )
+                Text("Add Your Progress", style = MaterialTheme.typography.titleLarge)
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = bookTitle,
-                    style = MaterialTheme.typography.h5,
-                    color = hitam
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                Text(bookTitle, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(24.dp))
 
-                if (showStartDateField) {
-                    TextField(
-                        value = startDate?.let {
-                            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it)
-                        } ?: "",
-                        onValueChange = { /* Read-only, gunakan date picker */ },
-                        label = { Text("Start Date of Reading", color = hijau5) },
-                        modifier = Modifier.fillMaxWidth(),
-                        readOnly = true,
-                        colors = TextFieldDefaults.textFieldColors(
-                            focusedIndicatorColor = hijau5,
-                            unfocusedIndicatorColor = hijau5,
-                            focusedLabelColor = hijau5,
-                            unfocusedLabelColor = hijau5,
-                            cursorColor = hijau5,
-                            backgroundColor = MaterialTheme.colors.surface
-                        ),
-                        trailingIcon = {
-                            IconButton(onClick = { startDatePickerDialog.show() }) {
-                                Icon(
-                                    imageVector = Icons.Filled.CalendarToday,
-                                    contentDescription = "Select Date",
-                                    tint = hijau5
-                                )
-                            }
-                        }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-                TextField(
-                    value = lastReadingDate.let {
-                        SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it)
-                    },
-                    onValueChange = { /* Read-only, gunakan date picker */ },
-                    label = { Text("Last Reading Date", color = hijau5) },
-                    modifier = Modifier.fillMaxWidth(),
-                    readOnly = true,
-                    colors = TextFieldDefaults.textFieldColors(
-                        focusedIndicatorColor = hijau5,
-                        unfocusedIndicatorColor = hijau5,
-                        focusedLabelColor = hijau5,
-                        unfocusedLabelColor = hijau5,
-                        cursorColor = hijau5,
-                        backgroundColor = MaterialTheme.colors.surface
-                    ),
-                    trailingIcon = {
-                        IconButton(onClick = { lastReadingDatePickerDialog.show() }) {
-                            Icon(
-                                imageVector = Icons.Filled.CalendarToday,
-                                contentDescription = "Select Date",
-                                tint = hijau5
-                            )
-                        }
-                    }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                TextField(
+                // Input Halaman Saat Ini
+                OutlinedTextField(
                     value = currentPage,
                     onValueChange = { newValue ->
-                        if (newValue.isEmpty() || newValue.toIntOrNull() in 0..totalPages) {
+                        // Izinkan input hanya jika kosong atau angka valid dalam rentang
+                        if (newValue.isEmpty() || (newValue.toIntOrNull() != null && newValue.toInt() <= totalPages)) {
                             currentPage = newValue
                         }
                     },
-                    label = { Text("Current Page", color = hijau5) },
+                    label = { Text("Current Page") },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.textFieldColors(
-                        focusedIndicatorColor = hijau5,
-                        unfocusedIndicatorColor = hijau5,
-                        focusedLabelColor = hijau5,
-                        unfocusedLabelColor = hijau5,
-                        cursorColor = hijau5,
-                        backgroundColor = MaterialTheme.colors.surface
-                    ),
-                    trailingIcon = {
-                        Text(
-                            text = "/ $totalPages",
-                            color = hijau5,
-                            modifier = Modifier.padding(end = 8.dp)
-                        )
-                    }
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    trailingIcon = { Text("/ $totalPages", modifier = Modifier.padding(end = 8.dp)) }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(
-                        checked = isFinished,
-                        onCheckedChange = { isFinished = it },
-                        colors = CheckboxDefaults.colors(
-                            checkedColor = hijau5,
-                            uncheckedColor = hijau5
-                        )
-                    )
-                    Text(
-                        text = "Finish Book",
-                        style = MaterialTheme.typography.body1,
-                        color = hijau5,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                }
+                // Input Tanggal Progres Dicatat
+                OutlinedTextField(
+                    value = remember(recordedDate) {
+                        java.text.SimpleDateFormat("dd MMMM yyyy", java.util.Locale.getDefault()).format(recordedDate)
+                    },
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Date Recorded") },
+                    modifier = Modifier.fillMaxWidth().clickable { datePickerDialog.show() }
+                )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button1(
-                        onClick = {
-                            navController.popBackStack()
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(40.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        backgroundColor = abu2
-                    ) {
-                        Text(
-                            text = "Cancel",
-                            style = MaterialTheme.typography.button
-                        )
+                // Checkbox Selesai Baca
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = isFinished, onCheckedChange = { isFinished = it })
+                    Text("I've finished this book", modifier = Modifier.padding(start = 8.dp))
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Tombol Aksi
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = { navController.popBackStack() }) {
+                        Text("Cancel")
                     }
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Button1(
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
                         onClick = {
-                            val pageRead = if (isFinished && currentPage.isEmpty()) {
+                            val pageRead = if (isFinished && currentPage.isBlank()) {
                                 totalPages
                             } else {
-                                currentPage.toIntOrNull() ?: 0
+                                currentPage.toIntOrNull()
                             }
-                            println("Saving progress: userLibraryId=$userLibraryId, pageRead=$pageRead, totalPages=$totalPages, currentPage='$currentPage', startDate=$startDate, lastReadingDate=$lastReadingDate")
-                            if (pageRead in 0..totalPages) {
-                                println("PageRead is valid, proceeding to save")
-                                if (showStartDateField && startDate == null) {
-                                    println("Start date is required for the first progress")
-                                    Toast.makeText(context, "Start date is required for the first progress", Toast.LENGTH_SHORT).show()
-                                    return@Button1
-                                }
-                                if (showStartDateField && startDate != null && token.value != null) {
-                                    viewModel.insertStartReadingProgress(
-                                        userLibraryId = userLibraryId,
-                                        startDate = startDate!!,
-                                        lastReadingDate = lastReadingDate,
-                                        totalPages = totalPages,
-                                        token = token.value!! // Tambahkan token
-                                    )
-                                }
-                                if (token.value != null) {
-                                    viewModel.updateReadingProgress(
-                                        userLibraryId = userLibraryId,
-                                        pageRead = pageRead,
-                                        recordedAt = lastReadingDate,
-                                        lastReadingDate = lastReadingDate,
-                                        isFinished = isFinished || pageRead == totalPages,
-                                        totalPages = totalPages,
-                                        token = token.value!! // Tambahkan token
-                                    )
-                                    navController.popBackStack()
-                                } else {
-                                    Toast.makeText(context, "Failed to get authentication token", Toast.LENGTH_SHORT).show()
-                                }
-                            } else {
-                                println("Invalid pageRead: $pageRead, must be between 0 and $totalPages")
-                                Toast.makeText(context, "Invalid page: must be between 0 and $totalPages", Toast.LENGTH_SHORT).show()
+
+                            if (pageRead == null) {
+                                Toast.makeText(context, "Please enter a valid page number.", Toast.LENGTH_SHORT).show()
+                                return@Button
                             }
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(40.dp),
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        backgroundColor = hijau4
+
+                            viewModel.addReadingProgress(userLibraryId, pageRead, recordedDate, isFinished)
+                            navController.popBackStack()
+                        }
                     ) {
-                        Text(
-                            text = "Save",
-                            style = MaterialTheme.typography.button
-                        )
+                        Text("Save")
                     }
+                }
+
+                // Tampilkan loading jika ada proses di ViewModel
+                if (uiState.isLoading) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    CircularProgressIndicator()
                 }
             }
         }
     }
 }
 
-private fun createDatePickerDialog(
+@Composable
+private fun rememberDatePickerDialog(
     context: Context,
-    maxDate: Date,
     onDateSelected: (Date) -> Unit
 ): DatePickerDialog {
     val calendar = Calendar.getInstance()
-    val dialog = DatePickerDialog(
-        context,
-        { _, year, month, dayOfMonth ->
-            calendar.set(year, month, dayOfMonth)
-            calendar.set(Calendar.HOUR_OF_DAY, 0)
-            calendar.set(Calendar.MINUTE, 0)
-            calendar.set(Calendar.SECOND, 0)
-            calendar.set(Calendar.MILLISECOND, 0)
+    val year = calendar.get(Calendar.YEAR)
+    val month = calendar.get(Calendar.MONTH)
+    val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+    return remember {
+        DatePickerDialog(context, { _, selectedYear, selectedMonth, selectedDay ->
+            calendar.set(selectedYear, selectedMonth, selectedDay)
             onDateSelected(calendar.time)
-        },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
-    )
-    dialog.datePicker.maxDate = maxDate.time
-    return dialog
+        }, year, month, day)
+    }
 }

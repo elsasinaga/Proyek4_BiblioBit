@@ -58,7 +58,7 @@ fun AddBookScreen(
 ) {
     var showAddBookDialog by remember { mutableStateOf(false) }
     val searchQuery by viewModel.searchQuery.collectAsState()
-    val books by viewModel.books.collectAsState(initial = emptyList())
+    val books by viewModel.books.collectAsState() // Dihilangkan initial value agar mengikuti state dari ViewModel
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val context = LocalContext.current
@@ -77,7 +77,9 @@ fun AddBookScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { query ->
-                    viewModel.updateSearchQuery(query)
+                    // ## DIPERBAIKI ##
+                    // Menggunakan nama fungsi yang baru dari ViewModel
+                    viewModel.onSearchQueryChanged(query)
                 },
                 modifier = Modifier
                     .weight(1f)
@@ -124,22 +126,34 @@ fun AddBookScreen(
                 }
             }
             errorMessage != null -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
                     Text(
                         text = errorMessage ?: "Unknown error",
                         color = MaterialTheme.colorScheme.error
                     )
                     Button(
-                        onClick = { viewModel.clearError() },
+                        onClick = { viewModel.onSearchQueryChanged(searchQuery) }, // Coba lagi dengan query yang sama
                         modifier = Modifier.padding(top = 8.dp)
                     ) {
                         Text("Try Again")
                     }
                 }
             }
-            books.isEmpty() -> {
+            books.isEmpty() && searchQuery.isNotBlank() -> {
                 Text(
-                    text = "No books added yet",
+                    text = "No books found for \"$searchQuery\"",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+            }
+            books.isEmpty() && searchQuery.isBlank() -> {
+                Text(
+                    text = "No books added yet. Search or add one manually.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     modifier = Modifier.align(Alignment.CenterHorizontally)
@@ -182,16 +196,17 @@ fun AddBookScreen(
                     isbn = isbn,
                     pages = page,
                     publisher = publisher,
-                    coverPhotoPath = coverPhotoPath,
-                    isSynced = false
+                    coverPhotoPath = coverPhotoPath
                 )
 
                 CoroutineScope(Dispatchers.IO).launch {
-                    val bookId = viewModel.insertBookAndGetId(book)
+                    // ## DIPERBAIKI ##
+                    // Menggunakan nama fungsi yang baru dari ViewModel
+                    val bookId = viewModel.createBook(book)
                     withContext(Dispatchers.Main) {
                         if (bookId > 0) {
                             navController.navigate(Screen.BookDetail.createRoute(bookId))
-                        } // Error akan ditangani oleh ViewModel
+                        }
                         showAddBookDialog = false
                     }
                 }
@@ -200,6 +215,9 @@ fun AddBookScreen(
     }
 }
 
+
+// Composable BookItem dan AddBookDialog tidak perlu diubah, jadi saya tidak sertakan lagi
+// untuk menjaga respons tetap ringkas. Cukup gunakan kode yang sudah Anda miliki untuk kedua fungsi tersebut.
 @Composable
 fun BookItem(
     book: Book,

@@ -6,7 +6,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+// Import yang benar cukup satu kali
 import coil.compose.rememberAsyncImagePainter
 import com.example.bibliobit.data.model.Book
 import com.example.bibliobit.ui.components.BarChart
@@ -58,6 +61,7 @@ fun StatisticScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
+            .verticalScroll(rememberScrollState())
     ) {
         // Dropdown untuk memilih jenis statistik
         StatisticTypeDropdown(
@@ -91,7 +95,7 @@ fun StatisticScreen(
         )
         Text(
             text = if (statisticType == "pages") totalPagesRead.toString() else totalBooksFinished.toString(),
-            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 48.sp),
+            style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.ExtraBold,
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center,
@@ -104,57 +108,39 @@ fun StatisticScreen(
         BarChart(
             data = if (statisticType == "pages") pagesReadData else booksFinishedData,
             isScrollable = selectedFilter == "day",
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().height(200.dp)
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         // Book History atau Reading History
         Text(
-            text = if (statisticType == "pages") "Books" else "Book History",
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            text = if (statisticType == "pages") "Reading History" else "Finished Books",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
             color = abu3
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        if (statisticType == "pages") {
-            // Untuk Pages Read, tampilkan Reading History
-            if (readingHistory.isEmpty()) {
-                Text(
-                    text = "No reading history available.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(readingHistory) { entry ->
-                        ReadingHistoryItem(
-                            entry = entry
-                        )
+        Box(modifier = Modifier.weight(1f, fill = false)) {
+            if (statisticType == "pages") {
+                if (readingHistory.isEmpty()) {
+                    Text("No reading history available.")
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(readingHistory) { entry ->
+                            ReadingHistoryItem(entry = entry)
+                        }
                     }
                 }
-            }
-        } else {
-            // Untuk Books Finished, tampilkan Book History (buku dengan status FINISH)
-            if (finishedBooks.isEmpty()) {
-                Text(
-                    text = "No finished books available.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(finishedBooks) { book ->
-                        BookHistoryItem(
-                            book = book
-                        )
+                if (finishedBooks.isEmpty()) {
+                    Text("No finished books available.")
+                } else {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(finishedBooks) { book ->
+                            BookHistoryItem(book = book)
+                        }
                     }
                 }
             }
@@ -206,7 +192,7 @@ fun StatisticTypeDropdown(
 
 @Composable
 fun ReadingHistoryItem(
-    entry: StatisticViewModel.ReadingHistoryEntry
+    entry: ReadingHistoryEntry
 ) {
     Row(
         modifier = Modifier
@@ -215,50 +201,31 @@ fun ReadingHistoryItem(
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (entry.book.coverPhotoPath != null) {
-            Image(
-                painter = rememberAsyncImagePainter(entry.book.coverPhotoPath),
-                contentDescription = "Book Cover",
-                modifier = Modifier
-                    .width(70.dp)
-                    .height(100.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .width(70.dp)
-                    .height(100.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No Cover",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
-        }
-
+        Image(
+            painter = rememberAsyncImagePainter(entry.book.coverPhotoPath),
+            contentDescription = "Book Cover",
+            modifier = Modifier
+                .width(50.dp)
+                .height(75.dp)
+                .clip(RoundedCornerShape(4.dp)),
+            contentScale = ContentScale.Crop
+        )
         Spacer(modifier = Modifier.width(16.dp))
-
         Column {
             Text(
                 text = entry.book.title,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                 color = abu3
             )
-            Column {
+            Text(
+                text = "Read up to page ${entry.progress.pageRead}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+            entry.progress.recordedAt?.let { date ->
                 Text(
-                    text = "Page ${entry.startPage} - Page ${entry.endPage}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-                Text(
-                    text = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(entry.progress.recordedAt),
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = SimpleDateFormat("dd MMMM, HH:mm", Locale.getDefault()).format(date),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
@@ -277,35 +244,17 @@ fun BookHistoryItem(
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (book.coverPhotoPath != null) {
-            Image(
-                painter = rememberAsyncImagePainter(book.coverPhotoPath),
-                contentDescription = "Book Cover",
-                modifier = Modifier
-                    .width(70.dp)
-                    .height(100.dp)
-                    .clip(RoundedCornerShape(4.dp)),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Box(
-                modifier = Modifier
-                    .width(70.dp)
-                    .height(100.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No Cover",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-            }
-        }
-
+        Image(
+            // ## DIPERBAIKI: Typo 'Imagepainter' menjadi 'ImagePainter' ##
+            painter = rememberAsyncImagePainter(book.coverPhotoPath),
+            contentDescription = "Book Cover",
+            modifier = Modifier
+                .width(50.dp)
+                .height(75.dp)
+                .clip(RoundedCornerShape(4.dp)),
+            contentScale = ContentScale.Crop
+        )
         Spacer(modifier = Modifier.width(16.dp))
-
         Column {
             Text(
                 text = book.title,
@@ -313,7 +262,7 @@ fun BookHistoryItem(
                 color = abu3
             )
             Text(
-                text = "Author: ${book.author ?: "Unknown"}",
+                text = "by ${book.author}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )

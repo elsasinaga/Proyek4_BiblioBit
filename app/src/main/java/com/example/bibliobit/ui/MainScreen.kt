@@ -30,7 +30,6 @@ fun MainScreen(
     navController: NavHostController = rememberNavController(),
     preferencesManager: PreferencesManager,
     readingStreak: ReadingStreak,
-    remoteDataSource: RemoteDataSource // Tambahkan parameter remoteDataSource
 ) {
     var isLoading by remember { mutableStateOf(true) }
 
@@ -100,8 +99,7 @@ fun MainScreen(
         AppNavHost(
             navController = navController,
             preferencesManager = preferencesManager,
-            readingStreak = readingStreak,
-            remoteDataSource = remoteDataSource // Teruskan remoteDataSource ke AppNavHost
+            readingStreak = readingStreak
         )
     }
 }

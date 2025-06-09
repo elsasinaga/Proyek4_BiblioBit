@@ -1,134 +1,67 @@
 package com.example.bibliobit.data.remote
 
-import com.example.bibliobit.data.model.*
+import com.example.bibliobit.data.model.Book
+import com.example.bibliobit.data.model.LocalUser
+import com.example.bibliobit.data.model.ReadingProgress
+import com.example.bibliobit.data.remote.request.UpdateUserLibraryRequest
+import com.example.bibliobit.data.remote.request.UserLibraryRequest
+import com.example.bibliobit.data.remote.response.UserLibraryResponse
 import retrofit2.Response
 import retrofit2.http.*
 
 interface ApiService {
 
-    // ------------------ Book ------------------ //
-    @GET("books")
+    // --- Books ---
+    @GET("api/books")
     suspend fun getBooks(): Response<List<Book>>
 
-    @POST("books")
-    suspend fun createBook(@Body book: Book): Response<Book>
-
-    @PUT("books/{id}")
-    suspend fun updateBook(@Path("id") id: Long, @Body book: Book): Response<Book>
-
-    @PUT("books/{id}/status")
-    suspend fun updateBookStatus(
-        @Path("id") bookId: Long,
-        @Body status: BookStatus // Ganti StatusUpdateRequest dengan BookStatus
-    ): Response<String>
-
-    @DELETE("books/{id}")
-    suspend fun deleteBook(@Path("id") id: Long): Response<Unit>
-
-    @POST("sync/books") // Tidak ada 'api/' sebelumnya, jadi tetap
-    suspend fun syncBooks(@Body books: List<Book>): Response<List<Book>>
-
-    @GET("books/{id}")
+    @GET("api/books/{id}")
     suspend fun getBookById(@Path("id") id: Long): Response<Book>
 
-    // ------------------ User Library ------------------ //
-    @GET("user-library") // Tidak ada 'api/' sebelumnya, jadi tetap
+    @POST("api/books")
+    suspend fun createBook(@Body book: Book): Response<Book>
+
+    // --- User Library ---
+    @GET("api/user-library")
     suspend fun getUserLibrary(
         @Query("status") status: String? = null,
         @Query("query") query: String? = null
     ): Response<List<UserLibraryResponse>>
 
-    @GET("user-library/{id}") // Dihilangkan 'api/'
-    suspend fun getUserLibraryById(
-        @Path("id") id: Long,
-        @Header("Authorization") token: String
-    ): Response<UserLibraryResponse>
-
-    @GET("user-library/reading") // Dihilangkan 'api/'
-    suspend fun getReadingBooks(
-        @Query("userId") userId: String? = null
-    ): Response<List<UserLibraryResponse>>
-
-    @POST("user-library") // Dihilangkan 'api/'
-    suspend fun updateOrCreateUserLibrary(@Body request: UserLibraryRequest): Response<UserLibraryResponse>
-
-    @POST("user-library") // Dihilangkan 'api/'
-    suspend fun createUserLibrary(@Body userLibrary: UserLibraryResponse): Response<UserLibraryResponse>
-
-    @PUT("user-library/{id}") // Dihilangkan 'api/'
-    suspend fun updateUserLibrary(
-        @Path("id") id: Long,
-        @Body userLibrary: UserLibraryResponse
-    ): Response<UserLibraryResponse>
-
-    @DELETE("user-library/{id}") // Dihilangkan 'api/'
+    @DELETE("api/user-library/{id}")
     suspend fun deleteUserLibrary(@Path("id") id: Long): Response<Unit>
 
-    @POST("sync/user-library") // Dihilangkan 'api/'
-    suspend fun syncUserLibrary(@Body userLibraries: List<UserLibraryResponse>): Response<List<UserLibraryResponse>>
+    @POST("api/user-library")
+    suspend fun createUserLibrary(@Body request: UserLibraryRequest): Response<UserLibraryResponse>
 
-    // ------------------ Local User ------------------ //
-    @GET("local-users") // Dihilangkan 'api/'
-    suspend fun getLocalUsers(): Response<List<LocalUser>>
+    @PUT("api/user-library/{id}")
+    suspend fun updateUserLibrary(
+        @Path("id") id: Long,
+        @Body request: UpdateUserLibraryRequest
+    ): Response<UserLibraryResponse>
 
-    @POST("local-users") // Dihilangkan 'api/'
-    suspend fun createLocalUser(@Body localUser: LocalUser): Response<LocalUser>
+    @GET("api/user-library/{id}")
+    suspend fun getUserLibraryById(@Path("id") id: Long): Response<UserLibraryResponse>
 
-    @PUT("local-users/{uid}") // Dihilangkan 'api/'
-    suspend fun updateLocalUser(
-        @Path("uid") uid: String,
-        @Body localUser: LocalUser
-    ): Response<LocalUser>
-
-    @POST("sync/local-users") // Dihilangkan 'api/'
-    suspend fun syncLocalUsers(@Body localUsers: List<LocalUser>): Response<List<LocalUser>>
-
-    // ------------------ Reading Progress ------------------ //
-    @GET("reading-progress") // Dihilangkan 'api/'
+    // --- Reading Progress ---
+    @GET("api/reading-progress")
     suspend fun getReadingProgress(
-        @Query("user_library_id") userLibraryId: Long? = null
+        @Query("user_library_id") userLibraryId: Long
     ): Response<List<ReadingProgress>>
 
-    @POST("reading-progress") // Dihilangkan 'api/'
+    @POST("api/reading-progress")
     suspend fun createReadingProgress(@Body readingProgress: ReadingProgress): Response<ReadingProgress>
 
-    @POST("sync/reading-progress") // Dihilangkan 'api/'
-    suspend fun syncReadingProgress(@Body readingProgressList: List<ReadingProgress>): Response<List<ReadingProgress>>
+    // --- Profile ---
+    @GET("api/profile")
+    suspend fun getProfile(): Response<LocalUser>
 
-    // ------------------ Note ------------------ //
-    @GET("notes") // Dihilangkan 'api/'
-    suspend fun getNotes(@Query("user_library_id") userLibraryId: Long? = null): Response<List<Note>>
+    @PUT("api/profile")
+    suspend fun updateProfile(@Body profileUpdateRequest: Map<String, String>): Response<LocalUser>
 
-    @POST("notes") // Dihilangkan 'api/'
-    suspend fun createNote(@Body note: Note): Response<Note>
+    @PUT("api/profile")
+    suspend fun updateProfileImage(@Body profileImageRequest: Map<String, String?>): Response<LocalUser>
 
-    @PUT("notes/{id}") // Dihilangkan 'api/'
-    suspend fun updateNote(@Path("id") id: Long, @Body note: Note): Response<Note>
-
-    @DELETE("notes/{id}") // Dihilangkan 'api/'
-    suspend fun deleteNote(@Path("id") id: Long): Response<Unit>
-
-    @POST("sync/notes") // Dihilangkan 'api/'
-    suspend fun syncNotes(@Body notes: List<Note>): Response<List<Note>>
+    @GET("api/reading-progress")
+    suspend fun getAllReadingProgress(): Response<List<ReadingProgress>>
 }
-
-// Data class untuk request
-data class UserLibraryRequest(
-    val bookId: Long,
-    val status: String,
-    val lastPageRead: Int? = null,
-    val rating: Float? = null
-)
-
-// Data class untuk response
-data class UserLibraryResponse(
-    val id: Long,
-    val userId: String,
-    val bookId: Long,
-    val status: String,
-    val lastPageRead: Int?,
-    val rating: Float?,
-    val createdAt: String?,
-    val updatedAt: String?,
-    val book: Book? = null // Pastikan nullable jika server tidak selalu mengembalikan book
-)

@@ -1,195 +1,65 @@
 package com.example.bibliobit.ui.profile
 
-import android.content.Context
-import android.net.Uri
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import android.util.Log
 import com.example.bibliobit.data.model.LocalUser
-import com.example.bibliobit.data.model.User
-import com.example.bibliobit.data.repository.AppDatabase
 import com.example.bibliobit.data.repository.AuthRepository
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
+import com.example.bibliobit.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import java.io.File
-import java.io.FileOutputStream
 import javax.inject.Inject
+
+// Definisikan satu state untuk merepresentasikan semua kondisi UI
+data class ProfileUiState(
+    val isLoading: Boolean = true,
+    val user: LocalUser? = null,
+    val error: String? = null
+)
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val auth: FirebaseAuth,
-    private val firestore: FirebaseFirestore,
-    private val db: AppDatabase,
-    @ApplicationContext private val context: Context
+    private val userRepository: UserRepository
 ) : ViewModel() {
-    private val _profileData = MutableLiveData<User>()
-    val profileData: LiveData<User> get() = _profileData
+
+    private val _uiState = MutableStateFlow(ProfileUiState())
+    val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init {
         fetchUserData()
     }
 
-    private fun fetchUserData() {
+    fun fetchUserData() {
         viewModelScope.launch {
-            val firebaseUser = auth.currentUser
-            if (firebaseUser != null) {
-                val uid = firebaseUser.uid
-                // Set default sementara
-                _profileData.postValue(User(email = firebaseUser.email ?: "", uid = uid, name = "User"))
-                try {
-                    val localUser = db.userDao().getUser(uid)
-                    if (localUser != null) {
-                        _profileData.postValue(localUser.toUser())
-                        if (!localUser.isSynced && isOnline()) {
-                            syncLocalToFirestore(localUser)
-                        }
-                    } else {
-                        val userDoc = firestore.collection("users").document(uid).get().await()
-                        if (userDoc.exists()) {
-                            val username = userDoc.getString("username") ?: ""
-                            val name = userDoc.getString("name") ?: "User"
-                            val profileImage = userDoc.getString("profileImage")
-                            val user = User(
-                                email = firebaseUser.email ?: "",
-                                uid = uid,
-                                username = username,
-                                name = name,
-                                profileImage = profileImage
-                            )
-                            _profileData.postValue(user)
-                            saveToLocal(user, true)
-                        } else {
-                            val defaultUser = User(
-                                email = firebaseUser.email ?: "",
-                                uid = uid,
-                                name = "User"
-                            )
-                            _profileData.postValue(defaultUser)
-                            saveToLocal(defaultUser, true)
-                            upsertProfileToFirestore(defaultUser)
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e("ProfileViewModel", "Error fetching user data: ${e.message}")
-                    _profileData.postValue(User(email = firebaseUser.email ?: "", uid = uid, name = "User"))
-                }
-            } else {
-                _profileData.postValue(null)
+            _uiState.value = ProfileUiState(isLoading = true) // Mulai loading
+            try {
+                // Langsung ambil profil dari backend Laravel kita
+                val userProfile = userRepository.getProfile()
+                _uiState.value = ProfileUiState(isLoading = false, user = userProfile)
+            } catch (e: Exception) {
+                // Jika ada error, update state dengan pesan error
+                _uiState.value = ProfileUiState(isLoading = false, error = "Failed to load profile: ${e.message}")
             }
         }
     }
 
-    fun upsertProfile(name: String, username: String) {
-        val currentUser = _profileData.value ?: return
-        val updatedUser = currentUser.copy(name = name, username = username)
-        _profileData.value = updatedUser
+    fun updateProfile(name: String, username: String) {
         viewModelScope.launch {
-            val localUser = updatedUser.toLocalUser(isOnline())
-            db.userDao().upsert(localUser)
-            if (isOnline()) {
-                upsertProfileToFirestore(updatedUser)
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            try {
+                val updatedProfile = userRepository.updateProfile(name, username)
+                _uiState.value = _uiState.value.copy(isLoading = false, user = updatedProfile)
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = "Failed to update profile: ${e.message}")
             }
         }
     }
 
-    fun updateProfileImage(imagePath: String) {
-        val currentUser = _profileData.value ?: return
-        val updatedUser = currentUser.copy(profileImage = imagePath)
-        _profileData.value = updatedUser
-        viewModelScope.launch {
-            val localUser = updatedUser.toLocalUser(isOnline())
-            db.userDao().upsert(localUser)
-            if (isOnline()) {
-                upsertProfileToFirestore(updatedUser)
-            }
-        }
-    }
-
-    fun saveImageToInternalStorage(context: Context, uri: Uri): String {
-        val file = File(context.filesDir, "profile_image_${System.currentTimeMillis()}.jpg")
-        context.contentResolver.openInputStream(uri)?.use { input ->
-            FileOutputStream(file).use { output ->
-                input.copyTo(output)
-            }
-        }
-        return file.absolutePath
-    }
-
-    private fun upsertProfileToFirestore(user: User) {
-        val userData = hashMapOf(
-            "email" to user.email,
-            "username" to user.username,
-            "name" to user.name,
-            "profileImage" to user.profileImage
-        )
-        firestore.collection("users").document(user.uid)
-            .set(userData)
-            .addOnSuccessListener {
-                viewModelScope.launch {
-                    db.userDao().upsert(user.toLocalUser(true))
-                }
-            }
-            .addOnFailureListener { e ->
-                Log.e("ProfileViewModel", "Failed to sync profile to Firestore: ${e.message}")
-            }
-    }
-
-    private fun syncLocalToFirestore(localUser: LocalUser) {
-        val userData = hashMapOf(
-            "email" to localUser.email,
-            "username" to localUser.username,
-            "name" to localUser.name,
-            "profileImage" to localUser.profileImage
-        )
-        firestore.collection("users").document(localUser.uid)
-            .set(userData)
-            .addOnSuccessListener {
-                viewModelScope.launch {
-                    db.userDao().upsert(localUser.copy(isSynced = true))
-                }
-            }
-            .addOnFailureListener { e ->
-                Log.e("ProfileViewModel", "Failed to sync local to Firestore: ${e.message}")
-            }
-    }
-
-    private fun saveToLocal(user: User, isSynced: Boolean) {
-        viewModelScope.launch {
-            db.userDao().upsert(user.toLocalUser(isSynced))
-        }
-    }
-
+    // Fungsi logout tidak berubah
     fun logout() {
-        auth.signOut()
+        authRepository.logout()
     }
-
-    private fun isOnline(): Boolean {
-        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
-        val network = connectivityManager.activeNetwork
-        return network != null
-    }
-
-    private fun User.toLocalUser(isSynced: Boolean) = LocalUser(
-        uid = uid,
-        email = email,
-        username = username,
-        name = name,
-        profileImage = profileImage,
-        isSynced = isSynced
-    )
-
-    private fun LocalUser.toUser() = User(
-        email = email,
-        uid = uid,
-        username = username,
-        name = name,
-        profileImage = profileImage
-    )
 }

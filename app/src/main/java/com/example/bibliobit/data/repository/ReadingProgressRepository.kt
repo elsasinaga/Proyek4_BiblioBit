@@ -2,69 +2,37 @@ package com.example.bibliobit.data.repository
 
 import com.example.bibliobit.data.model.ReadingProgress
 import com.example.bibliobit.data.remote.RemoteDataSource
-import kotlinx.coroutines.flow.Flow
-import retrofit2.HttpException
 import javax.inject.Inject
 
+/**
+ * ReadingProgressRepository yang sudah dirombak untuk arsitektur online-only.
+ * - Tidak ada lagi dependensi ke ReadingProgressDao.
+ * - Semua fungsi langsung memanggil RemoteDataSource (API).
+ * - Logika sinkronisasi dan metode yang tidak didukung backend telah dihapus.
+ */
 class ReadingProgressRepository @Inject constructor(
-    private val readingProgressDao: ReadingProgressDao,
     private val remoteDataSource: RemoteDataSource
 ) {
-    suspend fun insert(readingProgress: ReadingProgress) {
-        readingProgressDao.insert(readingProgress.copy(isSynced = false))
-        syncUnsyncedReadingProgress()
+
+    /**
+     * Mengambil riwayat baca untuk entri perpustakaan tertentu dari server.
+     */
+    suspend fun getReadingProgressByUserLibraryId(userLibraryId: Long): List<ReadingProgress> {
+        // Backend Anda belum mengimplementasikan controller ini,
+        // namun API-nya sudah didefinisikan.
+        return remoteDataSource.getReadingProgress(userLibraryId)
     }
 
-    fun getReadingProgressByUserLibraryId(userLibraryId: Long): Flow<List<ReadingProgress>> =
-        readingProgressDao.getReadingProgressByUserLibraryId(userLibraryId)
-
-    suspend fun getFirstReadingProgress(userLibraryId: Long): ReadingProgress? =
-        readingProgressDao.getFirstReadingProgress(userLibraryId)
-
-    fun getReadingProgressByUserId(userId: String): Flow<List<ReadingProgress>> =
-        readingProgressDao.getReadingProgressByUserId(userId)
-
-    suspend fun deleteReadingProgressByUserLibraryId(userLibraryId: Long) {
-        readingProgressDao.deleteReadingProgressByUserLibraryId(userLibraryId)
-        // Sinkronkan penghapusan ke server jika diperlukan
+    /**
+     * Mengirim data progres baca baru ke server untuk dibuat.
+     */
+    suspend fun insert(readingProgress: ReadingProgress): ReadingProgress {
+        // Backend Anda belum mengimplementasikan controller ini,
+        // namun API-nya sudah didefinisikan.
+        return remoteDataSource.createReadingProgress(readingProgress)
     }
 
-    suspend fun syncUnsyncedReadingProgress() {
-        try {
-            val unsyncedProgress = readingProgressDao.getUnsyncedReadingProgress()
-            if (unsyncedProgress.isNotEmpty()) {
-                val syncedProgress = remoteDataSource.syncReadingProgress(unsyncedProgress)
-                syncedProgress.forEach { progress ->
-                    readingProgressDao.insert(progress.copy(isSynced = true))
-                }
-            }
-        } catch (e: HttpException) {
-            if (e.code() == 401) {
-                throw Exception("Unauthorized: Please log in again")
-            } else {
-                throw e
-            }
-        } catch (e: Exception) {
-            throw e
-        }
+    suspend fun getAllReadingProgress(): List<ReadingProgress> {
+        return remoteDataSource.getAllReadingProgress()
     }
-
-    suspend fun syncReadingProgressFromServer() {
-        try {
-            val serverProgress = remoteDataSource.getReadingProgress()
-            serverProgress.forEach { progress ->
-                readingProgressDao.insert(progress.copy(isSynced = true))
-            }
-        } catch (e: HttpException) {
-            if (e.code() == 401) {
-                throw Exception("Unauthorized: Please log in again")
-            } else {
-                throw e
-            }
-        } catch (e: Exception) {
-            throw e
-        }
-    }
-
-
 }

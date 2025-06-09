@@ -1,13 +1,10 @@
 package com.example.bibliobit.di // Pastikan package Anda benar
 
 import android.content.Context
-import androidx.room.Room
 import com.example.bibliobit.data.remote.ApiService
 import com.example.bibliobit.data.remote.RemoteDataSource
-import com.example.bibliobit.data.repository.*
 import com.example.bibliobit.utils.BookStatusAdapter
 import com.example.bibliobit.utils.PreferencesManager
-import com.example.bibliobit.utils.ReadingStreak
 import com.example.bibliobit.network.AuthInterceptor // Pastikan path import untuk AuthInterceptor benar
 import com.example.bibliobit.data.model.BookStatus
 import com.google.firebase.auth.FirebaseAuth
@@ -30,7 +27,7 @@ import javax.inject.Singleton
 object AppModule {
 
     // Pastikan BASE_URL ini sudah benar (kemungkinan diakhiri dengan /api/)
-    private const val BASE_URL = "https://1f7b-2001-448a-3052-851e-7892-9a34-f73a-a557.ngrok-free.app/api/"
+    private const val BASE_URL = "https://06cc-2001-448a-3052-851e-45bf-3b7e-404b-62b.ngrok-free.app/"
 
     @Provides
     @Singleton
@@ -45,92 +42,7 @@ object AppModule {
     fun providePreferencesManager(@ApplicationContext context: Context): PreferencesManager =
         PreferencesManager(context)
 
-    @Provides
-    @Singleton
-    fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
-        val database = Room.databaseBuilder(context, AppDatabase::class.java, "bibliobit_database")
-            .addMigrations(
-                AppDatabase.MIGRATION_1_2,
-                AppDatabase.MIGRATION_2_3,
-                AppDatabase.MIGRATION_3_4,
-                AppDatabase.MIGRATION_4_5,
-                AppDatabase.MIGRATION_5_6,
-                AppDatabase.MIGRATION_6_7,
-                AppDatabase.MIGRATION_7_8
-                // Jika ada migrasi lain, tambahkan di sini
-            )
-            .fallbackToDestructiveMigration() // Hati-hati dengan ini di production
-            .build()
-        println("Database version: ${database.openHelper.readableDatabase.version}")
-        return database
-    }
 
-    @Provides
-    @Singleton
-    fun provideUserDao(appDatabase: AppDatabase): UserDao = appDatabase.userDao()
-
-    @Provides
-    @Singleton
-    fun provideBookDao(appDatabase: AppDatabase): BookDao = appDatabase.bookDao()
-
-    @Provides
-    @Singleton
-    fun provideBookRepository(
-        bookDao: BookDao,
-        remoteDataSource: RemoteDataSource
-    ): BookRepository = BookRepository(bookDao, remoteDataSource)
-
-    @Provides
-    @Singleton
-    fun provideUserLibraryDao(appDatabase: AppDatabase): UserLibraryDao = appDatabase.userLibraryDao()
-
-    @Provides
-    @Singleton
-    fun provideUserLibraryRepository(
-        userLibraryDao: UserLibraryDao,
-        remoteDataSource: RemoteDataSource
-    ): UserLibraryRepository = UserLibraryRepository(userLibraryDao, remoteDataSource)
-
-    @Provides
-    @Singleton
-    fun provideReadingProgressDao(appDatabase: AppDatabase): ReadingProgressDao = appDatabase.readingProgressDao()
-
-    @Provides
-    @Singleton
-    fun provideReadingProgressRepository(
-        readingProgressDao: ReadingProgressDao,
-        remoteDataSource: RemoteDataSource
-    ): ReadingProgressRepository = ReadingProgressRepository(readingProgressDao, remoteDataSource)
-
-    @Provides
-    @Singleton
-    fun provideNoteDao(appDatabase: AppDatabase): NoteDao = appDatabase.noteDao()
-
-    @Provides
-    @Singleton
-    fun provideNoteRepository(
-        noteDao: NoteDao,
-        remoteDataSource: RemoteDataSource
-    ): NoteRepository = NoteRepository(noteDao, remoteDataSource)
-
-    @Provides
-    @Singleton
-    fun provideAuthRepository(
-        firebaseAuth: FirebaseAuth,
-        firestore: FirebaseFirestore,
-        userDao: UserDao,
-        remoteDataSource: RemoteDataSource
-    ): AuthRepository = AuthRepositoryImpl(firebaseAuth, firestore, userDao, remoteDataSource)
-
-    @Provides
-    @Singleton
-    fun provideReadingStreakManager(
-        @ApplicationContext context: Context,
-        readingProgressDao: ReadingProgressDao,
-        userLibraryDao: UserLibraryDao
-    ): ReadingStreak = ReadingStreak(context, readingProgressDao, userLibraryDao)
-
-    // --- PENAMBAHAN DAN MODIFIKASI UNTUK NETWORK ---
     @Provides
     @Singleton
     fun provideHttpLoggingInterceptor(): HttpLoggingInterceptor {
@@ -186,5 +98,5 @@ object AppModule {
     fun provideRemoteDataSource(
         apiService: ApiService,
         firebaseAuth: FirebaseAuth
-    ): RemoteDataSource = RemoteDataSource(apiService, firebaseAuth)
+    ): RemoteDataSource = RemoteDataSource(apiService,  firebaseAuth)
 }

@@ -1,45 +1,17 @@
 package com.example.bibliobit.data.model
 
-import androidx.room.Entity
-import androidx.room.ForeignKey
-import androidx.room.Index
-import androidx.room.PrimaryKey
-import androidx.room.TypeConverters
-import com.example.bibliobit.utils.BookStatusConverter
+import com.google.gson.annotations.SerializedName
 import java.util.Date
 
-@Entity(
-    tableName = "user_library",
-    foreignKeys = [
-        ForeignKey(
-            entity = LocalUser::class,
-            parentColumns = ["uid"],
-            childColumns = ["userId"],
-            onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = Book::class,
-            parentColumns = ["id"],
-            childColumns = ["bookId"],
-            onDelete = ForeignKey.CASCADE
-        )
-    ],
-    indices = [
-        Index(value = ["userId"]),
-        Index(value = ["bookId"])
-    ]
-)
-@TypeConverters(DateConverter::class, BookStatusConverter::class, BookConverter::class)
 data class UserLibrary(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0L,
-    val userId: String,
-    val bookId: Long,
-    val status: BookStatus,
-    val lastPageRead: Int? = null,
-    val updatedAt: Date,
-    val rating: Float? = null,
-    val createdAt: Date? = null,
-    val isSynced: Boolean = false,
-    val book: Book? = null
+    @SerializedName("id") val id: Long? = null, // ID dari tabel user_library, bisa null saat membuat baru
+    @SerializedName("user_id") val userId: String,
+    @SerializedName("book_id") val bookId: Long,
+    @SerializedName("status") val status: BookStatus,
+    @SerializedName("last_page_read") val lastPageRead: Int? = null,
+    @SerializedName("rating") val rating: Float? = null,
+    @SerializedName("book") val book: Book? = null, // Untuk menampung data buku terkait saat fetch
+    // Timestamp bisa di-handle dengan TypeAdapter Gson jika formatnya tidak standar
+    @SerializedName("created_at") val createdAt: Date? = null,
+    @SerializedName("updated_at") val updatedAt: Date? = null
 )

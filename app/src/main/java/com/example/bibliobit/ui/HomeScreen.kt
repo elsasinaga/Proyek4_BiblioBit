@@ -8,86 +8,74 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberAsyncImagePainter
+import com.example.bibliobit.data.model.BookStatus
+import com.example.bibliobit.ui.library.LibraryViewModel
 import com.example.bibliobit.ui.profile.ProfileViewModel
-import com.example.bibliobit.ui.readingprogress.ReadingProgressViewModel
-import com.example.bibliobit.ui.readingprogress.ReadingBook
 import com.example.bibliobit.utils.ReadingStreak
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeScreen(
+    modifier: Modifier = Modifier,
     readingStreak: ReadingStreak,
-    onNavigateToReadingBook: (userId: String, bookId: Long) -> Unit = { _, _ -> },
+    // ## DIPERBAIKI: Definisi callback disesuaikan untuk hanya menerima userLibraryId ##
+    onNavigateToReadingBook: (userLibraryId: Long) -> Unit,
     profileViewModel: ProfileViewModel = hiltViewModel(),
-    readingProgressViewModel: ReadingProgressViewModel = hiltViewModel()
+    libraryViewModel: LibraryViewModel = hiltViewModel()
 ) {
     var currentStreak by remember { mutableStateOf(0) }
-    var userName by remember { mutableStateOf("User") }
-    var profileImage by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
     val userId = FirebaseAuth.getInstance().currentUser?.uid
-    val token = remember { mutableStateOf<String?>(null) }
 
-    val readingBooks by readingProgressViewModel.readingBooks.collectAsState()
-    val isLoading by readingProgressViewModel.isLoading.collectAsState()
-    val errorMessage by readingProgressViewModel.errorMessage.collectAsState()
+    // ## DIPERBAIKI: Mengambil state dari ViewModel yang benar ##
+    val readingBooks by libraryViewModel.libraryItems.collectAsState()
+    val isLoading by libraryViewModel.isLoading.collectAsState()
+    val errorMessage by libraryViewModel.errorMessage.collectAsState()
+    val profileUiState by profileViewModel.uiState.collectAsState() // Menggunakan uiState dari ProfileViewModel
 
-    val profileData by profileViewModel.profileData.observeAsState()
-
-    LaunchedEffect(userId) {
+    // LaunchedEffect untuk memuat data awal saat layar pertama kali ditampilkan
+    LaunchedEffect(key1 = userId) {
         if (userId != null) {
-            scope.launch {
-                // Ambil current streak
-                currentStreak = readingStreak.getCurrentStreak(userId)
+            // Ambil data reading streak
+            currentStreak = readingStreak.getCurrentStreak(userId)
 
-                // Ambil token autentikasi
-                token.value = FirebaseAuth.getInstance().currentUser?.getIdToken(true)?.await().toString()
-
-                // Ambil data profil
-                profileData?.let { profile ->
-                    userName = profile.name
-                    profileImage = profile.profileImage
-                    Log.d("HomeScreen", "User name: $userName, Profile image URL: $profileImage")
-                } ?: run {
-                    Log.d("HomeScreen", "Profile data not available")
-                }
-
-                // Load reading books jika token tersedia
-                token.value?.let { readingProgressViewModel.loadReadingBooks(userId, it) }
-                    ?: Log.d("HomeScreen", "Failed to get authentication token")
-            }
+            // Atur filter di LibraryViewModel untuk hanya mengambil buku dengan status "READING"
+            // ProfileViewModel sudah auto-load dari init block-nya.
+            libraryViewModel.setFilter(BookStatus.READING)
         } else {
-            Log.d("HomeScreen", "No user logged in")
+            Log.d("HomeScreen", "No user logged in, cannot fetch data.")
         }
     }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()), // Tambahkan scroll vertikal untuk konten
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.Start
     ) {
+        // --- Bagian Header Profil ---
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -96,17 +84,17 @@ fun HomeScreen(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Hello,",
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Light),
-                    modifier = Modifier.padding(bottom = 4.dp)
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Light)
                 )
+                // ## DIPERBAIKI: Ambil nama dari profileUiState.user ##
                 Text(
-                    text = "Hi, $userName",
+                    text = profileUiState.user?.name ?: "User",
                     style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }
-            if (profileImage != null) {
+            if (!profileUiState.user?.profileImage.isNullOrEmpty()) {
                 Image(
-                    painter = rememberAsyncImagePainter(profileImage),
+                    painter = rememberAsyncImagePainter(profileUiState.user?.profileImage),
                     contentDescription = "Profile Photo",
                     modifier = Modifier.size(48.dp).clip(CircleShape),
                     contentScale = ContentScale.Crop
@@ -117,7 +105,7 @@ fun HomeScreen(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(text = userName.firstOrNull()?.toString() ?: "U")
+                        Text(text = (profileUiState.user?.name?.firstOrNull()?.toString() ?: "U"))
                     }
                 }
             }
@@ -125,8 +113,9 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // --- Bagian Reading Streak ---
         Card(
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF4CAF50))
         ) {
@@ -137,10 +126,8 @@ fun HomeScreen(
                 )
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
                     Text(
-                        text = "\uD83D\uDD25",
+                        text = "🔥", // Emoji api
                         fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
                         modifier = Modifier.padding(end = 8.dp)
                     )
                     Text(
@@ -153,6 +140,7 @@ fun HomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // --- Bagian Continue Reading ---
         Row(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -160,53 +148,48 @@ fun HomeScreen(
         ) {
             Text(
                 text = "Continue Reading",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = Color.Black)
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
             )
             if (readingBooks.isNotEmpty()) {
-                IconButton(onClick = { userId?.let { onNavigateToReadingBook(it, readingBooks.first().bookId) } }) {
-                    Icon(Icons.Default.ArrowForward, contentDescription = "Continue Reading", tint = MaterialTheme.colorScheme.onSurface)
+                IconButton(onClick = { /* Navigasi kini per item */ }) {
+                    Icon(Icons.Default.ArrowForward, "See All")
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // --- Daftar Buku ---
         when {
             isLoading -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxWidth().height(250.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
             errorMessage != null -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(
-                        text = errorMessage ?: "Unknown error",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
+                Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error)
+            }
+            readingBooks.isEmpty() -> {
+                Text("You are not reading any books.", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
             }
             else -> {
-                if (readingBooks.isEmpty()) {
-                    Text(
-                        text = "No books currently being read.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                } else {
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        items(readingBooks) { readingBook ->
-                            ReadingBookItem(
-                                bookTitle = readingBook.bookTitle,
-                                coverPhotoPath = readingBook.coverPhotoPath,
-                                lastPageRead = readingBook.lastPageRead,
-                                totalPages = readingBook.totalPages,
-                                onClick = { userId?.let { onNavigateToReadingBook(it, readingBook.bookId) } }
-                            )
-                        }
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
+                ) {
+                    items(readingBooks, key = { it.id!! }) { userLibrary ->
+                        val book = userLibrary.book ?: return@items
+                        ReadingBookItem(
+                            bookTitle = book.title,
+                            coverPhotoPath = book.coverPhotoPath,
+                            lastPageRead = userLibrary.lastPageRead,
+                            totalPages = book.pages,
+                            onClick = {
+                                // ## DIPERBAIKI: Kirim userLibrary.id yang sudah non-null ##
+                                onNavigateToReadingBook(userLibrary.id!!)
+                            }
+                        )
                     }
                 }
             }
@@ -219,7 +202,7 @@ fun ReadingBookItem(
     bookTitle: String,
     coverPhotoPath: String?,
     lastPageRead: Int?,
-    totalPages: Int?,
+    totalPages: Int,
     onClick: () -> Unit
 ) {
     Column(
@@ -228,30 +211,32 @@ fun ReadingBookItem(
             .clickable { onClick() },
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (coverPhotoPath != null) {
-            Image(
-                painter = rememberAsyncImagePainter(coverPhotoPath),
-                contentDescription = "Book Cover",
-                modifier = Modifier
-                    .width(120.dp)
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Surface(
-                modifier = Modifier
-                    .width(120.dp)
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "No Cover",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        Card(
+            modifier = Modifier.width(120.dp).height(180.dp),
+            shape = RoundedCornerShape(8.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                if (coverPhotoPath != null) {
+                    Image(
+                        painter = rememberAsyncImagePainter(coverPhotoPath),
+                        contentDescription = "Book Cover",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
+                } else {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                text = "No Cover",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -261,27 +246,25 @@ fun ReadingBookItem(
             text = bookTitle,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
             maxLines = 2,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
         )
 
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "${lastPageRead ?: "Unknown"} / ${totalPages ?: "Unknown"}",
+            text = "${lastPageRead ?: 0} / $totalPages pages",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
 
         Spacer(modifier = Modifier.height(4.dp))
         LinearProgressIndicator(
-            progress = {
-                if (lastPageRead != null && totalPages != null && totalPages > 0) {
-                    lastPageRead.toFloat() / totalPages
-                } else {
-                    0f
-                }
+            progress = if (lastPageRead != null && totalPages > 0) {
+                lastPageRead.toFloat() / totalPages.toFloat()
+            } else {
+                0f
             },
-            modifier = Modifier.fillMaxWidth().height(4.dp),
+            modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
             color = Color(0xFF4CAF50),
             trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
         )

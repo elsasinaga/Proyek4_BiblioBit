@@ -1,13 +1,11 @@
 package com.example.bibliobit.ui.readingprogress
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
@@ -19,103 +17,70 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.bibliobit.data.model.BookStatus
-import com.example.bibliobit.ui.components.Button1
 import com.example.bibliobit.ui.navigation.Screen
 import com.example.bibliobit.ui.theme.abu2
-import com.example.bibliobit.ui.theme.hijau1
-import com.example.bibliobit.ui.theme.hijau2
 import com.example.bibliobit.ui.theme.hijau4
 import com.example.bibliobit.ui.theme.hijau5
 import com.example.bibliobit.ui.theme.hitam
-import com.google.firebase.auth.FirebaseAuth
-import java.text.SimpleDateFormat
-import java.util.Locale
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun YourReadingBookScreen(
-    userId: String,
-    bookId: Long,
-    viewModel: ReadingProgressViewModel,
-    onNavigateBack: () -> Unit,
-    onNavigateToAddProgress: (userLibraryId: Long, bookTitle: String, totalPages: Int, userId: String, bookId: Long) -> Unit,
-    onNavigateToSeeProgress: (userLibraryId: Long) -> Unit,
-    navController: NavController,
-    token: String? = null // Parameter opsional untuk token, default null
+    // ## DIPERBAIKI: Parameter disederhanakan ##
+    userLibraryId: Long,
+    viewModel: ReadingProgressViewModel = hiltViewModel(),
+    navController: NavController
 ) {
-    val book by viewModel.book.collectAsState()
-    val userLibrary by viewModel.userLibrary.collectAsState()
-    val firstReadingProgress by viewModel.firstReadingProgress.collectAsState()
-    val daysBetweenStartAndLast by viewModel.daysBetweenStartAndLast.collectAsState()
+    // ## DIPERBAIKI: Hanya observe satu state utama ##
+    val uiState by viewModel.uiState.collectAsState()
+    val book = uiState.book
+    val userLibrary = uiState.userLibrary
+
     var isFavorite by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
-    // Ambil token jika belum disediakan
-    val authToken = remember { mutableStateOf<String?>(token) }
-    LaunchedEffect(Unit) {
-        if (authToken.value == null) {
-            scope.launch {
-                authToken.value = FirebaseAuth.getInstance().currentUser?.getIdToken(true)?.await().toString()
-            }
-        }
+    // ## DIPERBAIKI: LaunchedEffect disederhanakan ##
+    // Cukup panggil loadData sekali untuk mengambil semua data yang diperlukan
+    LaunchedEffect(key1 = userLibraryId) {
+        viewModel.loadData(userLibraryId)
     }
 
-    // Initialize the ViewModel with userId, bookId, dan token
-    LaunchedEffect(userId, bookId, authToken.value) {
-        authToken.value?.let { viewModel.initialize(userId, bookId, it) }
-            ?: println("Token not available for initialization")
-    }
-
-    if (book == null || userLibrary == null) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            CircularProgressIndicator(
-                color = hijau5
-            )
+    // Tampilkan loading indicator jika data sedang dimuat
+    if (uiState.isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = hijau5)
         }
         return
     }
 
-    if (userLibrary?.status != BookStatus.READING) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "This book is not currently being read.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = abu2
-            )
+    // Tampilkan pesan error jika terjadi kesalahan
+    if (uiState.error != null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
         }
         return
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 24.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        Row(
+    // Tampilkan konten utama hanya jika data buku dan library sudah ada
+    if (book != null && userLibrary != null) {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+                .fillMaxSize()
+                .padding(horizontal = 24.dp)
+                .verticalScroll(rememberScrollState())
         ) {
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            if (book?.coverPhotoPath != null) {
+            // Baris untuk Cover dan Info Progres
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start
+            ) {
+                // Cover Buku
                 Image(
-                    painter = rememberAsyncImagePainter(book?.coverPhotoPath),
+                    painter = rememberAsyncImagePainter(book.coverPhotoPath),
                     contentDescription = "Book Cover",
                     modifier = Modifier
                         .width(170.dp)
@@ -123,279 +88,93 @@ fun YourReadingBookScreen(
                         .clip(RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Crop
                 )
-            } else {
-                Surface(
-                    modifier = Modifier
-                        .width(170.dp)
-                        .height(255.dp)
-                        .clip(RoundedCornerShape(8.dp)),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = "No Cover",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    }
+                Spacer(modifier = Modifier.width(16.dp))
+                // Info Progres
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ProgressInfoCard(title = "Your progress reading", value = "${userLibrary.lastPageRead ?: 0} / ${book.pages}")
+                    // Info lain seperti 'days' bisa dihitung di sini jika diperlukan
                 }
             }
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 8.dp)
+            // Info Judul dan Tombol Favorit
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, hijau4, RoundedCornerShape(8.dp)),
-                    color = hijau2,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Your progress reading",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontWeight = FontWeight.Normal
-                            ),
-                            color = hitam,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "${userLibrary?.lastPageRead ?: 0}",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = hijau5
-                            )
-                            Text(
-                                text = " / ${book?.pages ?: 0}",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Normal
-                                ),
-                                color = hijau5
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(1.dp, hijau4, RoundedCornerShape(8.dp)),
-                    color = hijau2,
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "From ${
-                                firstReadingProgress?.recordedAt?.let {
-                                    SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(it)
-                                } ?: "Not yet started"
-                            }",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                fontWeight = FontWeight.Normal
-                            ),
-                            color = hitam,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = "$daysBetweenStartAndLast",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = hijau5
-                            )
-                            Text(
-                                text = " Day",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Normal
-                                ),
-                                color = hijau5
-                            )
-                        }
-                    }
+                Text(
+                    text = book.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = hitam,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = { isFavorite = !isFavorite }) {
+                    Icon(
+                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = "Favorite",
+                        tint = if (isFavorite) MaterialTheme.colorScheme.error else hijau5
+                    )
                 }
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "by ${book.author}", style = MaterialTheme.typography.bodyLarge, color = abu2)
+
+            Divider(modifier = Modifier.padding(vertical = 16.dp))
+
+            // Sinopsis dan Info Buku
+            Text("Sinopsis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(book.description ?: "No description available.", style = MaterialTheme.typography.bodyMedium, color = abu2)
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Tombol Aksi
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(onClick = {
+                    navController.navigate(Screen.AddReadingProgress.createRoute(userLibrary.id!!, book.title, book.pages, "", 0L))
+                }, modifier = Modifier.weight(1f)) {
+                    Text("Edit Progress")
+                }
+                Button(onClick = {
+                    navController.navigate(Screen.YourProgressReading.createRoute(userLibrary.id!!, book.title, book.pages))
+                }, modifier = Modifier.weight(1f)) {
+                    Text("See Progress")
+                }
+                Button(onClick = {
+                    navController.navigate(Screen.Notes.createRoute(userLibrary.id!!, book.title))
+                }, modifier = Modifier.weight(1f)) {
+                    Text("Notes")
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
         }
+    } else {
+        // Tampilan jika data tidak ditemukan
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Book data not found.", style = MaterialTheme.typography.bodyLarge, color = abu2)
+        }
+    }
+}
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+@Composable
+private fun ProgressInfoCard(title: String, value: String) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = hijau4.copy(alpha = 0.2f))
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = book?.title ?: "Unknown Title",
-                style = MaterialTheme.typography.titleLarge,
-                color = hitam,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = { isFavorite = !isFavorite }) {
-                Icon(
-                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = "Favorite",
-                    tint = if (isFavorite) MaterialTheme.colorScheme.error else hijau5
-                )
-            }
+            Text(text = title, style = MaterialTheme.typography.bodySmall, color = hitam)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = value, style = MaterialTheme.typography.titleMedium, color = hijau5, fontWeight = FontWeight.Bold)
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = book?.publisher ?: "Unknown",
-            style = MaterialTheme.typography.bodyLarge,
-            color = hijau5
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Sinopsis",
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-            color = hitam
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = book?.description ?: "No description available.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = abu2
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Book Info",
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-            color = hitam
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Authors: ${book?.author ?: "Unknown"}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = abu2
-        )
-        Text(
-            text = "Genre: ${book?.genre ?: "Unknown"}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = abu2
-        )
-        Text(
-            text = "Number of Pages: ${book?.pages ?: "Unknown"}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = abu2
-        )
-        Text(
-            text = "Date Published: ${book?.year ?: "Unknown"}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = abu2
-        )
-        Text(
-            text = "ISBN: ${book?.isbn ?: "Unknown"}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = abu2
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Button1(
-                onClick = {
-                    val userLibrary = viewModel.userLibrary.value
-                    val book = viewModel.book.value
-                    if (userLibrary != null && book != null) {
-                        onNavigateToAddProgress(
-                            userLibrary.id,
-                            book.title,
-                            book.pages ?: 0,
-                            userId,
-                            bookId
-                        )
-                    }
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(40.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                backgroundColor = hijau4
-            ) {
-                Text(
-                    text = "Edit Progress",
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-            Button1(
-                onClick = {
-                    val userLibrary = viewModel.userLibrary.value
-                    if (userLibrary != null) {
-                        onNavigateToSeeProgress(userLibrary.id)
-                    }
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(40.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                backgroundColor = hijau4
-            ) {
-                Text(
-                    text = "See Progress",
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-            Button1(
-                onClick = {
-                    val userLibrary = viewModel.userLibrary.value
-                    val book = viewModel.book.value
-                    if (userLibrary != null && book != null) {
-                        navController.navigate(
-                            Screen.Notes.createRoute(userLibrary.id, book.title)
-                        )
-                    }
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(40.dp),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                backgroundColor = hijau4
-            ) {
-                Text(
-                    text = "Add Notes",
-                    style = MaterialTheme.typography.labelSmall
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
     }
 }

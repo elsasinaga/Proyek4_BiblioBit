@@ -44,7 +44,6 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         preferencesManager = preferencesManager,
                         readingStreak = readingStreak,
-                        remoteDataSource = remoteDataSource
                     )
                 }
             }

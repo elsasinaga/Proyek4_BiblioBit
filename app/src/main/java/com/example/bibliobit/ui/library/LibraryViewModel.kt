@@ -3,43 +3,55 @@ package com.example.bibliobit.ui.library
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.bibliobit.data.model.Book
 import com.example.bibliobit.data.model.BookStatus
 import com.example.bibliobit.data.model.UserLibrary
-import com.example.bibliobit.data.repository.BookRepository
 import com.example.bibliobit.data.repository.UserLibraryRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-import kotlin.coroutines.cancellation.CancellationException
 
 @HiltViewModel
 class LibraryViewModel @Inject constructor(
     private val userLibraryRepository: UserLibraryRepository,
-    private val bookRepository: BookRepository
 ) : ViewModel() {
 
-    private val _userId = MutableStateFlow<String?>(null)
-    private val _filter = MutableStateFlow("all")
+    private val _filter = MutableStateFlow<BookStatus?>(null)
+    val filter: StateFlow<BookStatus?> = _filter.asStateFlow()
+
     private val _searchQuery = MutableStateFlow("")
 
-    private val _libraryItems = MutableStateFlow<List<Pair<Book, UserLibrary>>>(emptyList())
-    val libraryItems: StateFlow<List<Pair<Book, UserLibrary>>> = _libraryItems.asStateFlow()
+    private val _libraryItems = MutableStateFlow<List<UserLibrary>>(emptyList())
+    val libraryItems: StateFlow<List<UserLibrary>> = _libraryItems.asStateFlow()
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    private var fetchJob: Job? = null
+    private var isInitialLoadDone = false // Penanda agar tidak load berulang kali
+
+    /**
+     * ## INI FUNGSI YANG HILANG ##
+     * Dipanggil sekali dari UI untuk memicu pemuatan data awal.
+     */
     fun setUserId(userId: String) {
-        _userId.value = userId
-        loadLibraryItems()
+        if (!isInitialLoadDone) {
+            loadLibraryItems()
+            isInitialLoadDone = true
+        }
     }
 
-    fun setFilter(filter: String) {
-        _filter.value = filter
-        loadLibraryItems()
+    fun setFilter(status: BookStatus?) {
+        if (_filter.value != status) {
+            _filter.value = status
+            loadLibraryItems()
+        }
     }
 
     fun setSearchQuery(query: String) {
@@ -47,90 +59,36 @@ class LibraryViewModel @Inject constructor(
         loadLibraryItems()
     }
 
-    fun deleteBookFromLibrary(bookId: Long) {
+    fun deleteBookFromLibrary(libraryId: Long) {
         viewModelScope.launch {
-            val userId = _userId.value ?: return@launch
+            _isLoading.value = true
             try {
-                userLibraryRepository.deleteUserLibrary(userId, bookId)
-                Log.d("LibraryViewModel", "Book with ID $bookId deleted from library for user $userId")
-                // Reload library items setelah penghapusan
-                loadLibraryItems()
+                userLibraryRepository.deleteUserLibrary(libraryId)
+                loadLibraryItems() // Muat ulang daftar setelah menghapus
             } catch (e: Exception) {
-                Log.e("LibraryViewModel", "Error deleting book from library: ${e.message}", e)
+                Log.e("LibraryViewModel", "Error deleting book: ${e.message}", e)
+                _errorMessage.value = "Failed to delete book: ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
         }
     }
 
     private fun loadLibraryItems() {
-        viewModelScope.launch {
-            val userId = _userId.value ?: return@launch
+        fetchJob?.cancel()
+        fetchJob = viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
             try {
-                Log.d(
-                    "LibraryViewModel",
-                    "Loading library items for userId=$userId, filter=${_filter.value}, query=${_searchQuery.value}"
-                )
-
-                val libraryFlow = when (_filter.value) {
-                    "all" -> {
-                        if (_searchQuery.value.isEmpty()) {
-                            userLibraryRepository.getUserLibrary(userId)
-                        } else {
-                            userLibraryRepository.searchUserLibrary(userId, _searchQuery.value)
-                        }
-                    }
-
-                    "wishlist" -> {
-                        if (_searchQuery.value.isEmpty()) {
-                            userLibraryRepository.getUserLibraryByStatus(
-                                userId,
-                                BookStatus.PLAN_TO_READ
-                            )
-                        } else {
-                            userLibraryRepository.searchUserLibrary(userId, _searchQuery.value)
-                                .map { items -> items.filter { it.status == BookStatus.PLAN_TO_READ } }
-                        }
-                    }
-
-                    "reading" -> {
-                        if (_searchQuery.value.isEmpty()) {
-                            userLibraryRepository.getUserLibraryByStatus(userId, BookStatus.READING)
-                        } else {
-                            userLibraryRepository.searchUserLibrary(userId, _searchQuery.value)
-                                .map { items -> items.filter { it.status == BookStatus.READING } }
-                        }
-                    }
-
-                    "finish" -> {
-                        if (_searchQuery.value.isEmpty()) {
-                            userLibraryRepository.getUserLibraryByStatus(userId, BookStatus.FINISH)
-                        } else {
-                            userLibraryRepository.searchUserLibrary(userId, _searchQuery.value)
-                                .map { items -> items.filter { it.status == BookStatus.FINISH } }
-                        }
-                    }
-
-                    else -> userLibraryRepository.getUserLibrary(userId)
-                }
-
-                libraryFlow
-                    .map { userLibraryList ->
-                        userLibraryList.mapNotNull { userLibrary ->
-                            val book = bookRepository.getBookById(userLibrary.bookId).firstOrNull()
-                            book?.let { Pair(it, userLibrary) }
-                        }
-                    }
-                    .collect { items ->
-                        if (isActive) { // Pastikan coroutine masih aktif
-                            _libraryItems.value = items
-                            Log.d("LibraryViewModel", "Loaded ${items.size} library items")
-                        }
-                    }
+                val statusFilter: String? = _filter.value?.name
+                val query = _searchQuery.value
+                val items = userLibraryRepository.getUserLibrary(status = statusFilter, query = query)
+                _libraryItems.value = items
             } catch (e: Exception) {
-                if (e is CancellationException) {
-                    Log.d("LibraryViewModel", "Loading cancelled, ignoring")
-                } else {
-                    Log.e("LibraryViewModel", "Error loading library items: ${e.message}", e)
-                }
+                Log.e("LibraryViewModel", "Error loading library items: ${e.message}", e)
+                _errorMessage.value = "Failed to load library: ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
         }
     }

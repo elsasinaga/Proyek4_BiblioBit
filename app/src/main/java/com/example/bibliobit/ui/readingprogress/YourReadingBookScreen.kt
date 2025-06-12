@@ -28,25 +28,20 @@ import com.example.bibliobit.ui.theme.hitam
 
 @Composable
 fun YourReadingBookScreen(
-    // ## DIPERBAIKI: Parameter disederhanakan ##
     userLibraryId: Long,
     viewModel: ReadingProgressViewModel = hiltViewModel(),
     navController: NavController
 ) {
-    // ## DIPERBAIKI: Hanya observe satu state utama ##
     val uiState by viewModel.uiState.collectAsState()
     val book = uiState.book
     val userLibrary = uiState.userLibrary
 
     var isFavorite by remember { mutableStateOf(false) }
 
-    // ## DIPERBAIKI: LaunchedEffect disederhanakan ##
-    // Cukup panggil loadData sekali untuk mengambil semua data yang diperlukan
     LaunchedEffect(key1 = userLibraryId) {
         viewModel.loadData(userLibraryId)
     }
 
-    // Tampilkan loading indicator jika data sedang dimuat
     if (uiState.isLoading) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = hijau5)
@@ -54,7 +49,6 @@ fun YourReadingBookScreen(
         return
     }
 
-    // Tampilkan pesan error jika terjadi kesalahan
     if (uiState.error != null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(uiState.error!!, color = MaterialTheme.colorScheme.error)
@@ -62,7 +56,6 @@ fun YourReadingBookScreen(
         return
     }
 
-    // Tampilkan konten utama hanya jika data buku dan library sudah ada
     if (book != null && userLibrary != null) {
         Column(
             modifier = Modifier
@@ -72,13 +65,11 @@ fun YourReadingBookScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Baris untuk Cover dan Info Progres
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Start
             ) {
-                // Cover Buku
                 Image(
                     painter = rememberAsyncImagePainter(book.coverPhotoPath),
                     contentDescription = "Book Cover",
@@ -89,16 +80,13 @@ fun YourReadingBookScreen(
                     contentScale = ContentScale.Crop
                 )
                 Spacer(modifier = Modifier.width(16.dp))
-                // Info Progres
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     ProgressInfoCard(title = "Your progress reading", value = "${userLibrary.lastPageRead ?: 0} / ${book.pages}")
-                    // Info lain seperti 'days' bisa dihitung di sini jika diperlukan
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Info Judul dan Tombol Favorit
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -123,20 +111,25 @@ fun YourReadingBookScreen(
 
             Divider(modifier = Modifier.padding(vertical = 16.dp))
 
-            // Sinopsis dan Info Buku
             Text("Sinopsis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             Text(book.description ?: "No description available.", style = MaterialTheme.typography.bodyMedium, color = abu2)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Tombol Aksi
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(onClick = {
-                    navController.navigate(Screen.AddReadingProgress.createRoute(userLibrary.id!!, book.title, book.pages, "", 0L))
+                    // ## DIPERBAIKI: Hapus dua argumen terakhir yang tidak perlu ##
+                    navController.navigate(
+                        Screen.AddReadingProgress.createRoute(
+                            userLibraryId = userLibrary.id!!,
+                            bookTitle = book.title,
+                            totalPages = book.pages
+                        )
+                    )
                 }, modifier = Modifier.weight(1f)) {
                     Text("Edit Progress")
                 }
@@ -154,7 +147,6 @@ fun YourReadingBookScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     } else {
-        // Tampilan jika data tidak ditemukan
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Book data not found.", style = MaterialTheme.typography.bodyLarge, color = abu2)
         }

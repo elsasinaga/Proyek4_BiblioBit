@@ -68,19 +68,19 @@ sealed class Screen(val route: String) {
     object YourReadingBook : Screen("your_reading_book/{userLibraryId}") {
         fun createRoute(userLibraryId: Long) = "your_reading_book/$userLibraryId"
     }
-    object AddReadingProgress : Screen("add_reading_progress/{userLibraryId}/{bookTitle}/{totalPages}/{userId}/{bookId}") {
-        fun createRoute(userLibraryId: Long, bookTitle: String, totalPages: Int, userId: String, bookId: Long) =
-            "add_reading_progress/$userLibraryId/$bookTitle/$totalPages/$userId/$bookId"
+    object AddReadingProgress : Screen("add_reading_progress/{userLibraryId}/{bookTitle}/{totalPages}") {
+        fun createRoute(userLibraryId: Long, bookTitle: String, totalPages: Int) =
+            "add_reading_progress/$userLibraryId/$bookTitle/$totalPages"
     }
     object YourProgressReading : Screen("your_progress_reading/{userLibraryId}/{bookTitle}/{totalPages}") {
         fun createRoute(userLibraryId: Long, bookTitle: String, totalPages: Int) =
             "your_progress_reading/$userLibraryId/$bookTitle/$totalPages"
     }
-    object YourWishlistBook : Screen("your_wishlist_book/{userId}/{bookId}") {
-        fun createRoute(userId: String, bookId: Long) = "your_wishlist_book/$userId/$bookId"
+    object YourWishlistBook : Screen("your_wishlist_book/{bookId}") {
+        fun createRoute(bookId: Long) = "your_wishlist_book/$bookId"
     }
-    object YourFinishBook : Screen("your_finish_book/{userId}/{bookId}") {
-        fun createRoute(userId: String, bookId: Long) = "your_finish_book/$userId/$bookId"
+    object YourFinishBook : Screen("your_finish_book/{bookId}") {
+        fun createRoute(bookId: Long) = "your_finish_book/$bookId"
     }
     object AddYourRating : Screen("add_your_rating/{userId}/{bookId}/{bookTitle}") {
         fun createRoute(userId: String, bookId: Long, bookTitle: String) = "add_your_rating/$userId/$bookId/$bookTitle"
@@ -187,9 +187,7 @@ fun AppNavHost(
                 HomeScreen(
                     modifier = contentModifier,
                     readingStreak = readingStreak,
-                    // ## DIPERBAIKI: Sesuaikan dengan definisi baru ##
                     onNavigateToReadingBook = { userLibraryId ->
-                        // Panggil route yang sudah kita perbaiki sebelumnya
                         navController.navigate(Screen.YourReadingBook.createRoute(userLibraryId))
                     }
                 )
@@ -198,28 +196,55 @@ fun AppNavHost(
 
         composable(Screen.Add.route) {
             val viewModel: AddBookViewModel = hiltViewModel()
-            AppScaffold(navController = navController, title = "Add Book") { contentModifier ->
-                AddBookScreen(
-                    modifier = contentModifier,
-                    navController = navController,
-                    viewModel = viewModel
-                )
+            AppScaffold(navController = navController, title = "Add Book") {
+                AddBookScreen(navController = navController, viewModel = viewModel)
             }
         }
 
         composable(Screen.BookDetail.route, arguments = listOf(navArgument("bookId") { type = androidx.navigation.NavType.LongType })) { backStackEntry ->
             val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
             val viewModel: BookDetailViewModel = hiltViewModel()
-            AppScaffold(navController = navController, title = "Book Details", showBackButton = true) { contentModifier ->
-                BookDetailScreen(
-                    bookId = bookId,
-                    viewModel = viewModel,
-                    onNavigateBack = { navController.popBackStack() }
-                )
+            AppScaffold(navController = navController, title = "Book Details", showBackButton = true) {
+                BookDetailScreen(bookId = bookId, viewModel = viewModel, onNavigateBack = { navController.popBackStack() })
             }
         }
 
-        // ... (Semua composable lainnya mengikuti pola yang sama)
+        composable(Screen.YourReadingBook.route, arguments = listOf(navArgument("userLibraryId") { type = androidx.navigation.NavType.LongType })) { backStackEntry ->
+            val userLibraryId = backStackEntry.arguments?.getLong("userLibraryId") ?: 0L
+            val viewModel: ReadingProgressViewModel = hiltViewModel()
+            AppScaffold(navController = navController, title = "Reading Detail", showBackButton = true) {
+                YourReadingBookScreen(userLibraryId = userLibraryId, viewModel = viewModel, navController = navController)
+            }
+        }
+
+        composable(Screen.AddReadingProgress.route, arguments = listOf(
+            navArgument("userLibraryId") { type = androidx.navigation.NavType.LongType },
+            navArgument("bookTitle") { type = androidx.navigation.NavType.StringType },
+            navArgument("totalPages") { type = androidx.navigation.NavType.IntType }
+        )) { backStackEntry ->
+            val userLibraryId = backStackEntry.arguments?.getLong("userLibraryId") ?: 0L
+            val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: ""
+            val totalPages = backStackEntry.arguments?.getInt("totalPages") ?: 0
+            val viewModel: ReadingProgressViewModel = hiltViewModel()
+            AddReadingProgressScreen(userLibraryId = userLibraryId, bookTitle = bookTitle, totalPages = totalPages, viewModel = viewModel, navController = navController)
+        }
+
+        composable(Screen.YourWishlistBook.route, arguments = listOf(navArgument("bookId") { type = androidx.navigation.NavType.LongType })) { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val viewModel: YourWishlistBookViewModel = hiltViewModel()
+            AppScaffold(navController = navController, title = "Wishlist Detail", showBackButton = true) {
+                YourWishlistBookScreen(userId = auth.currentUser?.uid ?: "", bookId = bookId, viewModel = viewModel, navController = navController, onNavigateBack = { navController.popBackStack() })
+            }
+        }
+
+        composable(Screen.YourFinishBook.route, arguments = listOf(navArgument("bookId") { type = androidx.navigation.NavType.LongType })) { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val viewModel: YourFinishBookViewModel = hiltViewModel()
+            AppScaffold(navController = navController, title = "Finished Detail", showBackButton = true) {
+                YourFinishBookScreen(userId = auth.currentUser?.uid ?: "", bookId = bookId, viewModel = viewModel, navController = navController, onNavigateBack = { navController.popBackStack() })
+            }
+        }
+
 
         composable(Screen.Statistic.route) {
             val viewModel: StatisticViewModel = hiltViewModel()
@@ -257,7 +282,5 @@ fun AppNavHost(
                 )
             }
         }
-
-        // ... (Pastikan semua screen lain juga dipanggil dengan named arguments jika error)
     }
 }

@@ -26,8 +26,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    // Pastikan BASE_URL ini sudah benar (kemungkinan diakhiri dengan /api/)
-    private const val BASE_URL = "https://06cc-2001-448a-3052-851e-45bf-3b7e-404b-62b.ngrok-free.app/"
+    private const val BASE_URL = "https://bb28-103-139-10-8.ngrok-free.app/"
 
     @Provides
     @Singleton

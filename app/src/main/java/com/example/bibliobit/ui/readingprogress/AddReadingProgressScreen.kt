@@ -5,8 +5,10 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,8 +18,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
+import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
+import java.util.Locale
 
 @Composable
 fun AddReadingProgressScreen(
@@ -25,8 +29,7 @@ fun AddReadingProgressScreen(
     bookTitle: String,
     totalPages: Int,
     viewModel: ReadingProgressViewModel,
-    navController: NavHostController,
-    // Hapus parameter tidak perlu: userId, bookId
+    navController: NavHostController
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
@@ -36,25 +39,26 @@ fun AddReadingProgressScreen(
     var recordedDate by remember { mutableStateOf(Date()) }
     var isFinished by remember { mutableStateOf(false) }
 
-    // Panggil `loadData` sekali saat screen pertama kali dibuat
+    // Panggil `loadData` hanya sekali saat layar dibuat
     LaunchedEffect(key1 = userLibraryId) {
         viewModel.loadData(userLibraryId)
     }
 
-    // Date Picker Dialog
     val datePickerDialog = rememberDatePickerDialog(context) { newDate ->
         recordedDate = newDate
     }
 
-    // UI Utama
     Dialog(onDismissRequest = { navController.popBackStack() }) {
-        Surface(
+        Card(
             shape = RoundedCornerShape(16.dp),
             modifier = Modifier.fillMaxWidth().padding(16.dp),
-            color = MaterialTheme.colorScheme.surface
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
-                modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text("Add Your Progress", style = MaterialTheme.typography.titleLarge)
@@ -66,22 +70,21 @@ fun AddReadingProgressScreen(
                 OutlinedTextField(
                     value = currentPage,
                     onValueChange = { newValue ->
-                        // Izinkan input hanya jika kosong atau angka valid dalam rentang
                         if (newValue.isEmpty() || (newValue.toIntOrNull() != null && newValue.toInt() <= totalPages)) {
                             currentPage = newValue
                         }
                     },
-                    label = { Text("Current Page") },
+                    label = { Text("Page You've Read To") },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    trailingIcon = { Text("/ $totalPages", modifier = Modifier.padding(end = 8.dp)) }
+                    trailingIcon = { Text("/ $totalPages", modifier = Modifier.padding(end = 12.dp)) }
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Input Tanggal Progres Dicatat
                 OutlinedTextField(
                     value = remember(recordedDate) {
-                        java.text.SimpleDateFormat("dd MMMM yyyy", java.util.Locale.getDefault()).format(recordedDate)
+                        SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(recordedDate)
                     },
                     onValueChange = {},
                     readOnly = true,
@@ -91,7 +94,10 @@ fun AddReadingProgressScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Checkbox Selesai Baca
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { isFinished = !isFinished },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Checkbox(checked = isFinished, onCheckedChange = { isFinished = it })
                     Text("I've finished this book", modifier = Modifier.padding(start = 8.dp))
                 }
@@ -116,6 +122,7 @@ fun AddReadingProgressScreen(
                                 return@Button
                             }
 
+                            // Panggil fungsi ViewModel yang sudah disederhanakan
                             viewModel.addReadingProgress(userLibraryId, pageRead, recordedDate, isFinished)
                             navController.popBackStack()
                         }

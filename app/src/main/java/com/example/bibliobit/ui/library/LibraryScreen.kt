@@ -17,7 +17,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.bibliobit.data.model.BookStatus
-import com.example.bibliobit.data.model.UserLibrary
 import com.example.bibliobit.ui.components.FinishBookItem
 import com.example.bibliobit.ui.components.ReadingBookItem
 import com.example.bibliobit.ui.components.WishlistBookItem
@@ -32,14 +31,14 @@ fun LibraryScreen(
     navController: NavHostController
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    // ## PERBAIKAN ##: Gunakan BookStatus? untuk filter, null berarti "all"
     var selectedFilter by remember { mutableStateOf<BookStatus?>(null) }
     var isDeleteMode by remember { mutableStateOf(false) }
 
+    // LaunchedEffect untuk memuat data awal saat userId tersedia
     LaunchedEffect(Unit) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId != null) {
-            viewModel.setUserId(userId) // Panggil fungsi yang benar
+            viewModel.setUserId(userId)
         }
     }
 
@@ -51,12 +50,12 @@ fun LibraryScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Filter Bar (Asumsi komponen ini bisa menerima BookStatus? dan event)
+        // Filter Bar
         LibraryFilterBar(
             selectedFilter = selectedFilter,
             onFilterSelected = { status ->
                 selectedFilter = status
-                viewModel.setFilter(status) // Panggil fungsi yang benar
+                viewModel.setFilter(status)
             },
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
         )
@@ -70,7 +69,7 @@ fun LibraryScreen(
                 value = searchQuery,
                 onValueChange = {
                     searchQuery = it
-                    viewModel.setSearchQuery(it) // Panggil fungsi yang benar
+                    viewModel.setSearchQuery(it)
                 },
                 modifier = Modifier.weight(1f),
                 placeholder = { Text("Search my library...", style = Typography.bodyLarge) },
@@ -108,23 +107,32 @@ fun LibraryScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(libraryItems, key = { it.id!! }) { userLibrary ->
-                    // ## PERBAIKAN ##: Ambil book dari userLibrary object
-                    val book = userLibrary.book ?: return@items // Lewati jika data buku tidak ada
+                    val book = userLibrary.book ?: return@items
 
+                    // ## INI BAGIAN UTAMA PERUBAHANNYA ##
                     Box(
                         modifier = Modifier.clickable {
                             if (!isDeleteMode) {
-                                // Navigasi ke detail buku
-                                navController.navigate(Screen.BookDetail.createRoute(book.id))
+                                // Logika navigasi cerdas berdasarkan status buku
+                                when (userLibrary.status) {
+                                    BookStatus.READING -> {
+                                        navController.navigate(Screen.YourReadingBook.createRoute(userLibrary.id!!))
+                                    }
+                                    BookStatus.FINISH -> {
+                                        navController.navigate(Screen.YourFinishBook.createRoute(book.id))
+                                    }
+                                    BookStatus.PLAN_TO_READ -> {
+                                        navController.navigate(Screen.YourWishlistBook.createRoute(book.id))
+                                    }
+                                }
                             }
                         }
                     ) {
-                        // ## PERBAIKAN ##: Gunakan userLibrary.status
+                        // Tampilan item tetap sama, hanya logika klik yang diubah
                         when (userLibrary.status) {
                             BookStatus.PLAN_TO_READ -> WishlistBookItem(
                                 book = book,
                                 showDeleteButton = isDeleteMode,
-                                // ## PERBAIKAN ##: Kirim userLibrary.id yang benar untuk dihapus
                                 onDelete = { viewModel.deleteBookFromLibrary(userLibrary.id!!) }
                             )
                             BookStatus.READING -> ReadingBookItem(
@@ -149,8 +157,7 @@ fun LibraryScreen(
 }
 
 /**
- * Contoh komponen FilterBar yang sudah disesuaikan.
- * Anda bisa menggantinya dengan komponen Anda sendiri.
+ * Komponen FilterBar.
  */
 @Composable
 fun LibraryFilterBar(

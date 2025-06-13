@@ -13,6 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -194,9 +195,7 @@ fun AppNavHost(
                 HomeScreen(
                     modifier = contentModifier,
                     readingStreak = readingStreak,
-                    // ## DIPERBAIKI: Sesuaikan dengan definisi baru ##
                     onNavigateToReadingBook = { userLibraryId ->
-                        // Panggil route yang sudah kita perbaiki sebelumnya
                         navController.navigate(Screen.YourReadingBook.createRoute(userLibraryId))
                     }
                 )
@@ -226,12 +225,39 @@ fun AppNavHost(
             }
         }
 
-        // ... (Semua composable lainnya mengikuti pola yang sama)
+        composable(
+        route = Screen.BookDetail.route,
+        arguments = listOf(navArgument("bookId") { type = NavType.LongType })
+    ) { backStackEntry ->
+        val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+        val viewModel: BookDetailViewModel = hiltViewModel()
+        AppScaffold(navController = navController, title = "Book Details", showBackButton = true) {
+            BookDetailScreen(
+                bookId = bookId,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+    }
+
+        composable(
+            route = Screen.YourReadingBook.route,
+            arguments = listOf(navArgument("userLibraryId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val userLibraryId = backStackEntry.arguments?.getLong("userLibraryId") ?: 0L
+            val viewModel: ReadingProgressViewModel = hiltViewModel()
+            AppScaffold(navController = navController, title = "Currently Reading", showBackButton = true) {
+                YourReadingBookScreen(
+                    userLibraryId = userLibraryId,
+                    viewModel = viewModel,
+                    navController = navController
+                )
+            }
+        }
 
         composable(Screen.Statistic.route) {
             val viewModel: StatisticViewModel = hiltViewModel()
             AppScaffold(navController = navController, title = "Statistic") { contentModifier ->
-                // ## DIPERBAIKI ## Menggunakan named arguments
                 StatisticScreen(
                     modifier = contentModifier,
                     viewModel = viewModel
@@ -242,7 +268,6 @@ fun AppNavHost(
         composable(Screen.Library.route) {
             val viewModel: LibraryViewModel = hiltViewModel()
             AppScaffold(navController = navController, title = "Library") { contentModifier ->
-                // ## DIPERBAIKI ## Menggunakan named arguments
                 LibraryScreen(
                     modifier = contentModifier,
                     navController = navController,

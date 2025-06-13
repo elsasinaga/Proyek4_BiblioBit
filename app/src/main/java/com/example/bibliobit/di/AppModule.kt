@@ -26,7 +26,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    private const val BASE_URL = "https://bb28-103-139-10-8.ngrok-free.app/"
+    private const val BASE_URL = "https://0caf-2001-448a-3045-80fd-b05f-bda-d62a-b3e4.ngrok-free.app/"
 
     @Provides
     @Singleton

@@ -11,6 +11,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import com.example.bibliobit.data.remote.RemoteDataSource
+import com.example.bibliobit.data.repository.AuthRepository
 import com.example.bibliobit.ui.MainScreen
 import com.example.bibliobit.ui.theme.BiblioBitTheme
 import com.example.bibliobit.utils.PreferencesManager
@@ -30,6 +31,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var readingStreak: ReadingStreak
 
+    @Inject
+    lateinit var authRepository: AuthRepository
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +48,7 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         preferencesManager = preferencesManager,
                         readingStreak = readingStreak,
+                        authRepository = authRepository
                     )
                 }
             }

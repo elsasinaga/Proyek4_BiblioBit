@@ -22,6 +22,7 @@ import com.example.bibliobit.data.remote.RemoteDataSource
 import com.example.bibliobit.ui.navigation.AppNavHost
 import com.example.bibliobit.utils.PreferencesManager
 import com.example.bibliobit.utils.ReadingStreak
+import com.example.bibliobit.data.repository.AuthRepository
 import kotlinx.coroutines.delay
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -30,6 +31,7 @@ fun MainScreen(
     navController: NavHostController = rememberNavController(),
     preferencesManager: PreferencesManager,
     readingStreak: ReadingStreak,
+    authRepository: AuthRepository
 ) {
     var isLoading by remember { mutableStateOf(true) }
 
@@ -99,7 +101,8 @@ fun MainScreen(
         AppNavHost(
             navController = navController,
             preferencesManager = preferencesManager,
-            readingStreak = readingStreak
+            readingStreak = readingStreak,
+            authRepository = authRepository
         )
     }
 }

@@ -8,4 +8,5 @@ interface AuthRepository {
     suspend fun resetPassword(email: String): Result<Unit>
     fun getCurrentUser(): User?
     fun logout()
+    fun isUserLoggedIn(): Boolean
 }

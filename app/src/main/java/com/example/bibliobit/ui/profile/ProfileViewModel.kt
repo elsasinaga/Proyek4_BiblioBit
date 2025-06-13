@@ -1,11 +1,14 @@
 package com.example.bibliobit.ui.profile
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.bibliobit.data.model.LocalUser
 import com.example.bibliobit.data.repository.AuthRepository
 import com.example.bibliobit.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,13 +19,15 @@ import javax.inject.Inject
 data class ProfileUiState(
     val isLoading: Boolean = true,
     val user: LocalUser? = null,
-    val error: String? = null
+    val error: String? = null,
+    val shouldNavigateToLogin: Boolean = false // Tambahkan state untuk navigasi
 )
 
 @HiltViewModel
 class ProfileViewModel @Inject constructor(
     private val authRepository: AuthRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ProfileUiState())
@@ -61,5 +66,10 @@ class ProfileViewModel @Inject constructor(
     // Fungsi logout tidak berubah
     fun logout() {
         authRepository.logout()
+    }
+
+    // Reset navigasi setelah digunakan
+    fun resetNavigation() {
+        _uiState.value = _uiState.value.copy(shouldNavigateToLogin = false)
     }
 }

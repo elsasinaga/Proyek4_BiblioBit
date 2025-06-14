@@ -36,32 +36,28 @@ fun YourFinishBookScreen(
     navController: NavHostController,
     onNavigateBack: () -> Unit
 ) {
-    // ## DIPERBAIKI: Gunakan satu state dari ViewModel ##
-    val uiState by viewModel.uiState.collectAsState()
-    val book = uiState.book
-    val userLibrary = uiState.userLibrary
-
+    val book by viewModel.book.collectAsState()
+    val userLibrary by viewModel.userLibrary.collectAsState()
     var isFavorite by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
+    // Load book dan userLibrary data
     LaunchedEffect(key1 = bookId) {
-        viewModel.loadData(bookId)
+        viewModel.loadBook(bookId)
+        viewModel.loadUserLibrary(userId, bookId)
     }
 
-    if (uiState.isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    if (book == null || userLibrary == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
             CircularProgressIndicator()
         }
         return
     }
 
-    if (book == null || userLibrary == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Book data not found.")
-        }
-        return
-    }
 
     Column(
         modifier = Modifier
@@ -69,88 +65,157 @@ fun YourFinishBookScreen(
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // ... (Kode untuk menampilkan Cover, Rating, Judul, Deskripsi, dll tidak berubah)
-        // ... (Anda bisa salin dari file lama Anda, pastikan menggunakan `book` dan `userLibrary` dari uiState)
-
         Spacer(modifier = Modifier.height(16.dp))
+
+        // Cover Buku dan Rating
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
-                painter = rememberAsyncImagePainter(book.coverPhotoPath),
+                painter = rememberAsyncImagePainter(book?.coverPhotoPath ?: ""),
                 contentDescription = "Book Cover",
-                modifier = Modifier.width(170.dp).height(255.dp).clip(RoundedCornerShape(8.dp)),
+                modifier = Modifier
+                    .width(170.dp)
+                    .height(255.dp)
+                    .clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop
             )
+
             Spacer(modifier = Modifier.width(16.dp))
+
             Surface(
-                modifier = Modifier.fillMaxWidth().border(1.dp, hijau4, RoundedCornerShape(8.dp)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, hijau4, RoundedCornerShape(8.dp)),
                 color = hijau2,
                 shape = RoundedCornerShape(8.dp)
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Your Rating", style = MaterialTheme.typography.bodySmall, color = hitam)
+                    Text(
+                        text = "Your Rating",
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Normal),
+                        color = hitam,
+                        textAlign = TextAlign.Center
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
-                    RatingBar(rating = userLibrary.rating ?: 0f, modifier = Modifier.height(20.dp))
+                    RatingBar(
+                        rating = userLibrary?.rating ?: 0f,
+                        modifier = Modifier.height(20.dp)
+                    )
                 }
             }
         }
-        // ... Sisa UI lainnya ...
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Judul dan Tombol Favorit
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = book?.title ?: "Unknown Title",
+                style = MaterialTheme.typography.titleLarge,
+                color = hitam,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = { isFavorite = !isFavorite }) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (isFavorite) MaterialTheme.colorScheme.error else hijau5
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = book?.publisher ?: "Unknown",
+            style = MaterialTheme.typography.bodyLarge,
+            color = hijau5
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ## DIPERBAIKI: Tombol Aksi dengan logika baru ##
+        Text(
+            text = book?.description ?: "No description available.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = abu2
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Informasi Buku
+        Text(
+            text = "Book Info",
+            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            color = hitam
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("Authors: ${book?.author ?: "Unknown"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
+        Text("Genre: ${book?.genre ?: "Unknown"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
+        Text("Number of Pages: ${book?.pages ?: "Unknown"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
+        Text("Date Published: ${book?.year ?: "Unknown"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
+        Text("ISBN: ${book?.isbn ?: "Unknown"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Tombol Aksi
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Tombol Add/Edit Rating
-            Button(
+            Button1(
                 onClick = {
-                    navController.navigate(Screen.AddYourRating.createRoute(userId, bookId, book.title))
+                    navController.navigate(
+                        Screen.AddYourRating.createRoute(userId, bookId, book?.title ?: "")
+                    )
                 },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).height(40.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text("Edit Rating")
+                Text("Add Rating", style = MaterialTheme.typography.labelSmall)
             }
-
-            // Tombol Read Again
-            Button(
+            Button1(
                 onClick = {
                     scope.launch {
-                        val updatedLibraryItem = viewModel.readAgain()
+                        viewModel.readAgain(userId, bookId)
+                        Toast.makeText(context, "Book set to Reading. Progress reset!", Toast.LENGTH_SHORT).show()
+
+                        // Navigasi ke Reading Book Screen setelah status diubah
+                        val updatedLibraryItem = viewModel.userLibrary.value
                         if (updatedLibraryItem != null) {
-                            Toast.makeText(context, "Book set to Reading. Progress reset!", Toast.LENGTH_SHORT).show()
-                            // Navigasi dengan userLibraryId yang baru/diperbarui
                             navController.navigate(Screen.YourReadingBook.createRoute(updatedLibraryItem.id!!)) {
                                 popUpTo(Screen.Home.route) // Kembali ke Home setelah aksi
                             }
-                        } else {
-                            Toast.makeText(context, "Failed to update status.", Toast.LENGTH_SHORT).show()
                         }
                     }
                 },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).height(40.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text("Read Again")
+                Text("Read Again!", style = MaterialTheme.typography.labelSmall)
             }
-
-            // Tombol Notes
-            Button(
+            Button1(
                 onClick = {
-                    navController.navigate(Screen.Notes.createRoute(userLibrary.id!!, book.title))
+                    val userLibraryId = userLibrary?.id ?: 0L
+                    val bookTitle = book?.title ?: "Unknown Title"
+                    navController.navigate(Screen.Notes.createRoute(userLibraryId, bookTitle))
                 },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).height(40.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text("Notes")
+                Text("Add Notes", style = MaterialTheme.typography.labelSmall)
             }
         }
-
         Spacer(modifier = Modifier.height(16.dp))
     }
 }

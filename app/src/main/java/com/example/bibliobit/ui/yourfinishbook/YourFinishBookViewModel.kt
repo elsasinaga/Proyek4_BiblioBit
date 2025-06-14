@@ -28,47 +28,66 @@ class YourFinishBookViewModel @Inject constructor(
     private val userLibraryRepository: UserLibraryRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(FinishBookUiState())
-    val uiState: StateFlow<FinishBookUiState> = _uiState.asStateFlow()
+    private val _book = MutableStateFlow<Book?>(null)
+    val book: StateFlow<Book?> = _book.asStateFlow()
 
-    fun loadData(bookId: Long) {
+    private val _userLibrary = MutableStateFlow<UserLibrary?>(null)
+    val userLibrary: StateFlow<UserLibrary?> = _userLibrary.asStateFlow()
+
+    fun loadBook(bookId: Long) {
         viewModelScope.launch {
-            _uiState.value = FinishBookUiState(isLoading = true)
             try {
-                // Ambil data buku dan data library secara bersamaan
-                val book = bookRepository.getBookById(bookId)
-                val allLibraryItems = userLibraryRepository.getUserLibrary()
-                val userLibrary = allLibraryItems.firstOrNull { it.bookId == bookId }
-
-                _uiState.value = FinishBookUiState(
-                    isLoading = false,
-                    book = book,
-                    userLibrary = userLibrary
-                )
+                _book.value = bookRepository.getBookById(bookId)
             } catch (e: Exception) {
-                // Handle error
+                // TODO: Handle error, misalnya dengan state error terpisah
             }
         }
     }
 
-    /**
-     * Mengubah status buku kembali menjadi 'READING'
-     * dan mengembalikan UserLibrary yang telah diperbarui.
-     */
-    suspend fun readAgain(): UserLibrary? {
-        val currentLibrary = _uiState.value.userLibrary ?: return null
+    fun loadUserLibrary(userId: String, bookId: Long) {
+        viewModelScope.launch {
+            try {
+                // Asumsi repository bisa filter berdasarkan userId, jika tidak, sesuaikan.
+                val allLibraryItems = userLibraryRepository.getUserLibrary()
+                _userLibrary.value = allLibraryItems.firstOrNull { it.bookId == bookId }
+            } catch (e: Exception) {
+                // TODO: Handle error
+            }
+        }
+    }
 
-        return try {
-            val updatedEntry = currentLibrary.copy(
-                status = BookStatus.READING,
-                lastPageRead = 0, // Reset progres
-                rating = null, // Reset rating
-                updatedAt = Date()
-            )
-            // Kirim pembaruan ke server
-            userLibraryRepository.upsertUserLibrary(updatedEntry)
-        } catch (e: Exception) {
-            null
+    fun readAgain(userId: String, bookId: Long) {
+        viewModelScope.launch {
+            val currentLibrary = _userLibrary.value ?: return@launch
+            try {
+                val updatedEntry = currentLibrary.copy(
+                    status = BookStatus.READING,
+                    lastPageRead = 0,
+                    rating = null,
+                    updatedAt = Date()
+                )
+                // Kirim pembaruan ke server
+                userLibraryRepository.upsertUserLibrary(updatedEntry)
+            } catch (e: Exception) {
+                // TODO: Handle error
+            }
+        }
+    }
+
+    fun loadData(bookId: Long) {
+        viewModelScope.launch {
+            try {
+                // Fungsi ini memuat kedua data, yang sebenarnya lebih efisien
+                val bookData = bookRepository.getBookById(bookId)
+                val allLibraryItems = userLibraryRepository.getUserLibrary()
+                val userLibraryData = allLibraryItems.firstOrNull { it.bookId == bookId }
+
+                _book.value = bookData
+                _userLibrary.value = userLibraryData
+
+            } catch (e: Exception) {
+                // Handle error
+            }
         }
     }
 }

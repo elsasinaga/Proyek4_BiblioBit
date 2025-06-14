@@ -2,10 +2,13 @@ package com.example.bibliobit.data.remote
 
 import com.example.bibliobit.data.model.Book
 import com.example.bibliobit.data.model.LocalUser
+import com.example.bibliobit.data.model.Note
 import com.example.bibliobit.data.model.ReadingProgress
 import com.example.bibliobit.data.remote.request.UpdateUserLibraryRequest
 import com.example.bibliobit.data.remote.request.UserLibraryRequest
 import com.example.bibliobit.data.remote.response.UserLibraryResponse
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -64,4 +67,27 @@ interface ApiService {
 
     @GET("api/reading-progress")
     suspend fun getAllReadingProgress(): Response<List<ReadingProgress>>
+
+    // --- Notes ---
+    @GET("api/user-library/{userLibraryId}/notes")
+    suspend fun getNotes(@Path("userLibraryId") userLibraryId: Long): List<Note>
+
+    @Multipart
+    @POST("api/user-library/{userLibraryId}/notes")
+    suspend fun createNote(
+        @Path("userLibraryId") userLibraryId: Long,
+        @Part("content") content: RequestBody,
+        @Part image: MultipartBody.Part?
+    ): Note
+
+    @Multipart
+    @POST("api/notes/{noteId}")
+    suspend fun updateNote(
+        @Path("noteId") noteId: Long,
+        @Part("content") content: RequestBody,
+        @Part image: MultipartBody.Part?
+    ): Note
+
+    @DELETE("api/notes/{noteId}")
+    suspend fun deleteNote(@Path("noteId") noteId: Long): Response<Unit>
 }

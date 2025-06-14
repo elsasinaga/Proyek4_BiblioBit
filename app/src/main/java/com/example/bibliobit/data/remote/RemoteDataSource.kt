@@ -2,11 +2,14 @@ package com.example.bibliobit.data.remote
 
 import com.example.bibliobit.data.model.Book
 import com.example.bibliobit.data.model.LocalUser
+import com.example.bibliobit.data.model.Note
 import com.example.bibliobit.data.model.ReadingProgress
 import com.example.bibliobit.data.remote.request.UpdateUserLibraryRequest
 import com.example.bibliobit.data.remote.request.UserLibraryRequest
 import com.example.bibliobit.data.remote.response.UserLibraryResponse
 import com.google.firebase.auth.FirebaseAuth
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.HttpException
 import retrofit2.Response
 import javax.inject.Inject
@@ -17,7 +20,7 @@ class RemoteDataSource @Inject constructor(
 ) {
     private suspend fun <T> handleResponse(response: Response<T>): T {
         if (response.isSuccessful) {
-            return response.body() ?: throw Exception("Response body is null")
+            return response.body() ?: (Unit as T)
         } else {
             throw HttpException(response)
         }
@@ -65,4 +68,20 @@ class RemoteDataSource @Inject constructor(
 
     suspend fun getAllReadingProgress(): List<ReadingProgress> =
         handleResponse(apiService.getAllReadingProgress())
+
+    suspend fun getNotes(userLibraryId: Long): List<Note> {
+        return apiService.getNotes(userLibraryId)
+    }
+
+    suspend fun createNote(userLibraryId: Long, content: RequestBody, image: MultipartBody.Part?): Note {
+        return apiService.createNote(userLibraryId, content, image)
+    }
+
+    suspend fun updateNote(noteId: Long, content: RequestBody, image: MultipartBody.Part?): Note {
+        return apiService.updateNote(noteId, content, image)
+    }
+
+    suspend fun deleteNote(noteId: Long) {
+        handleResponse(apiService.deleteNote(noteId))
+    }
 }

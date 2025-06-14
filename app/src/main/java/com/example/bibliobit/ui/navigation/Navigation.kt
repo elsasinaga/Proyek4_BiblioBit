@@ -31,6 +31,8 @@ import com.example.bibliobit.ui.library.LibraryScreen
 import com.example.bibliobit.ui.library.LibraryViewModel
 import com.example.bibliobit.ui.login.LoginScreen
 import com.example.bibliobit.ui.login.LoginViewModel
+import com.example.bibliobit.ui.notes.NotesScreen
+import com.example.bibliobit.ui.notes.NotesViewModel
 import com.example.bibliobit.ui.onboarding.OnboardingScreen
 import com.example.bibliobit.ui.profile.ProfileScreen
 import com.example.bibliobit.ui.register.RegisterScreen
@@ -371,6 +373,31 @@ fun AppNavHost(
                             launchSingleTop = true
                         }
                     }
+                )
+            }
+        }
+
+        composable(Screen.Notes.route,
+            arguments = listOf(
+                navArgument("userLibraryId") { type = NavType.LongType },
+                navArgument("bookTitle") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val userLibraryId = backStackEntry.arguments?.getLong("userLibraryId") ?: 0L
+            val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: "No Title"
+            val viewModel: NotesViewModel = hiltViewModel()
+            AppScaffold(
+                navController = navController,
+                title = "Notes",
+                showBackButton = true,
+                showBottomBar = false
+            ) { contentModifier ->
+                NotesScreen(
+                    modifier = contentModifier,
+                    userLibraryId = userLibraryId,
+                    viewModel = viewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    bookTitle = bookTitle
                 )
             }
         }

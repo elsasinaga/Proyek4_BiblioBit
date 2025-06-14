@@ -7,4 +7,5 @@
     <external-path name="external_files" path="Pictures"/>
 
     <files-path name="camera_photos" path="." />
+    <cache-path name="shared_cache"  path="." />
 </paths>

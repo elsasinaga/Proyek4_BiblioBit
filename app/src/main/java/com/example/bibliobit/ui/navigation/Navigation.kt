@@ -256,6 +256,32 @@ fun AppNavHost(
         }
 
         composable(
+            route = Screen.AddReadingProgress.route,
+            arguments = listOf(
+                navArgument("userLibraryId") { type = NavType.LongType },
+                navArgument("bookTitle") { type = NavType.StringType },
+                navArgument("totalPages") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            // Ambil semua parameter dari rute navigasi
+            val userLibraryId = backStackEntry.arguments?.getLong("userLibraryId") ?: 0L
+            val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: "No Title"
+            val totalPages = backStackEntry.arguments?.getInt("totalPages") ?: 0
+
+            // Gunakan hiltViewModel untuk mendapatkan instance ReadingProgressViewModel
+            val viewModel: ReadingProgressViewModel = hiltViewModel()
+
+            // Tampilkan dialog AddReadingProgressScreen
+            AddReadingProgressScreen(
+                userLibraryId = userLibraryId,
+                bookTitle = bookTitle,
+                totalPages = totalPages,
+                viewModel = viewModel,
+                navController = navController
+            )
+        }
+
+        composable(
             route = Screen.YourFinishBook.route,
             arguments = listOf(navArgument("bookId") { type = NavType.LongType })
         ) { backStackEntry ->

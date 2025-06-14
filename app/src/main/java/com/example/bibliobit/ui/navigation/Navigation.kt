@@ -246,13 +246,27 @@ fun AppNavHost(
         ) { backStackEntry ->
             val userLibraryId = backStackEntry.arguments?.getLong("userLibraryId") ?: 0L
             val viewModel: ReadingProgressViewModel = hiltViewModel()
-            AppScaffold(navController = navController, title = "Currently Reading", showBackButton = true) {
-                YourReadingBookScreen(
-                    userLibraryId = userLibraryId,
-                    viewModel = viewModel,
-                    navController = navController
-                )
-            }
+
+            YourReadingBookScreen(
+                userLibraryId = userLibraryId,
+                viewModel = viewModel,
+                // Implementasi callback navigasi:
+                onNavigateToAddProgress = { id, title, pages ->
+                    navController.navigate(
+                        Screen.AddReadingProgress.createRoute(id, title, pages)
+                    )
+                },
+                onNavigateToSeeProgress = { id, title, pages ->
+                    navController.navigate(
+                        Screen.YourProgressReading.createRoute(id, title, pages)
+                    )
+                },
+                onNavigateToNotes = { id, title ->
+                    navController.navigate(
+                        Screen.Notes.createRoute(id, title)
+                    )
+                }
+            )
         }
 
         composable(

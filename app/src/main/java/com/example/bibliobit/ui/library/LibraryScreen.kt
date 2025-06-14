@@ -108,8 +108,6 @@ fun LibraryScreen(
             ) {
                 items(libraryItems, key = { it.id!! }) { userLibrary ->
                     val book = userLibrary.book ?: return@items
-
-                    // ## INI BAGIAN UTAMA PERUBAHANNYA ##
                     Box(
                         modifier = Modifier.clickable {
                             if (!isDeleteMode) {

@@ -255,6 +255,50 @@ fun AppNavHost(
             }
         }
 
+        composable(
+            route = Screen.YourFinishBook.route,
+            arguments = listOf(navArgument("bookId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val viewModel: YourFinishBookViewModel = hiltViewModel()
+            val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
+            AppScaffold(navController = navController, title = "Finished Book", showBackButton = true) {
+                YourFinishBookScreen(
+                    userId = userId,
+                    bookId = bookId,
+                    viewModel = viewModel,
+                    navController = navController,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+        }
+
+        composable(
+            route = Screen.AddYourRating.route,
+            arguments = listOf(
+                navArgument("userId") { type = NavType.StringType },
+                navArgument("bookId") { type = NavType.LongType },
+                navArgument("bookTitle") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            // Ambil semua argumen dari rute
+            val userId = backStackEntry.arguments?.getString("userId") ?: ""
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: "No Title"
+
+            val viewModel: AddYourRatingViewModel = hiltViewModel()
+
+            // Panggil screen yang sebenarnya
+            AddYourRatingScreen(
+                userId = userId,
+                bookId = bookId,
+                bookTitle = bookTitle,
+                viewModel = viewModel,
+                onNavigateBack = { navController.popBackStack() } // Aksi untuk kembali
+            )
+        }
+
         composable(Screen.Statistic.route) {
             val viewModel: StatisticViewModel = hiltViewModel()
             AppScaffold(navController = navController, title = "Statistic") { contentModifier ->

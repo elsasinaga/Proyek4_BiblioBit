@@ -1,9 +1,9 @@
+// File: ui/navigation/AppNavHost.kt
+
 package com.example.bibliobit.ui.navigation
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,7 +55,7 @@ import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
-// Sealed class Screen tidak berubah
+// Sealed class Screen (tidak berubah)
 sealed class Screen(val route: String) {
     object Onboarding : Screen("onboarding")
     object Login : Screen("login")
@@ -132,7 +132,7 @@ fun AppNavHost(
             }
             AppScaffold(
                 navController = navController,
-                title = "Onboarding", // ## DIPERBAIKI ##
+                title = "Onboarding",
                 showTopBar = false,
                 showBottomBar = false
             ) { contentModifier ->
@@ -144,7 +144,7 @@ fun AppNavHost(
             val loginViewModel: LoginViewModel = hiltViewModel()
             AppScaffold(
                 navController = navController,
-                title = "Login", // ## DIPERBAIKI ##
+                title = "Login",
                 showTopBar = false,
                 showBottomBar = false
             ) { contentModifier ->
@@ -165,7 +165,7 @@ fun AppNavHost(
             val registerViewModel: RegisterViewModel = hiltViewModel()
             AppScaffold(
                 navController = navController,
-                title = "Register", // ## DIPERBAIKI ##
+                title = "Register",
                 showTopBar = false,
                 showBottomBar = false
             ) { contentModifier ->
@@ -181,9 +181,9 @@ fun AppNavHost(
             val forgotPasswordViewModel: ForgotPasswordViewModel = hiltViewModel()
             AppScaffold(
                 navController = navController,
-                title = "Forgot Password", // ## DIPERBAIKI ##
+                title = "Forgot Password",
                 showTopBar = false,
-                showBackButton = true // Biasanya halaman ini punya tombol kembali
+                showBackButton = true
             ) { contentModifier ->
                 ForgotPasswordScreen(
                     viewModel = forgotPasswordViewModel,
@@ -215,32 +215,21 @@ fun AppNavHost(
             }
         }
 
-        composable(Screen.BookDetail.route, arguments = listOf(navArgument("bookId") { type = androidx.navigation.NavType.LongType })) { backStackEntry ->
+        composable(
+            route = Screen.BookDetail.route,
+            arguments = listOf(navArgument("bookId") { type = NavType.LongType })
+        ) { backStackEntry ->
             val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
             val viewModel: BookDetailViewModel = hiltViewModel()
             AppScaffold(navController = navController, title = "Book Details", showBackButton = true) { contentModifier ->
                 BookDetailScreen(
+                    modifier = contentModifier, // <-- TETAP PERTAHANKAN INI
                     bookId = bookId,
                     viewModel = viewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
         }
-
-        composable(
-        route = Screen.BookDetail.route,
-        arguments = listOf(navArgument("bookId") { type = NavType.LongType })
-    ) { backStackEntry ->
-        val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
-        val viewModel: BookDetailViewModel = hiltViewModel()
-        AppScaffold(navController = navController, title = "Book Details", showBackButton = true) {
-            BookDetailScreen(
-                bookId = bookId,
-                viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
-    }
 
         composable(
             route = Screen.YourReadingBook.route,
@@ -252,7 +241,6 @@ fun AppNavHost(
             YourReadingBookScreen(
                 userLibraryId = userLibraryId,
                 viewModel = viewModel,
-                // Implementasi callback navigasi:
                 onNavigateToAddProgress = { id, title, pages ->
                     navController.navigate(
                         Screen.AddReadingProgress.createRoute(id, title, pages)
@@ -279,15 +267,11 @@ fun AppNavHost(
                 navArgument("totalPages") { type = NavType.IntType }
             )
         ) { backStackEntry ->
-            // Ambil semua parameter dari rute navigasi
             val userLibraryId = backStackEntry.arguments?.getLong("userLibraryId") ?: 0L
             val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: "No Title"
             val totalPages = backStackEntry.arguments?.getInt("totalPages") ?: 0
-
-            // Gunakan hiltViewModel untuk mendapatkan instance ReadingProgressViewModel
             val viewModel: ReadingProgressViewModel = hiltViewModel()
 
-            // Tampilkan dialog AddReadingProgressScreen
             AddReadingProgressScreen(
                 userLibraryId = userLibraryId,
                 bookTitle = bookTitle,
@@ -324,20 +308,17 @@ fun AppNavHost(
                 navArgument("bookTitle") { type = NavType.StringType }
             )
         ) { backStackEntry ->
-            // Ambil semua argumen dari rute
             val userId = backStackEntry.arguments?.getString("userId") ?: ""
             val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
             val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: "No Title"
-
             val viewModel: AddYourRatingViewModel = hiltViewModel()
 
-            // Panggil screen yang sebenarnya
             AddYourRatingScreen(
                 userId = userId,
                 bookId = bookId,
                 bookTitle = bookTitle,
                 viewModel = viewModel,
-                onNavigateBack = { navController.popBackStack() } // Aksi untuk kembali
+                onNavigateBack = { navController.popBackStack() }
             )
         }
 

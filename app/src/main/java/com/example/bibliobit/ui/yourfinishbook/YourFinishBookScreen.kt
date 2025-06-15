@@ -34,24 +34,25 @@ fun YourFinishBookScreen(
     bookId: Long,
     viewModel: YourFinishBookViewModel,
     navController: NavHostController,
-    modifier: Modifier = Modifier, // 1. Tambahkan parameter modifier di sini
+    modifier: Modifier = Modifier,
     onNavigateBack: () -> Unit
 ) {
+    // Bagian State dan Logic tidak diubah
     val book by viewModel.book.collectAsState()
     val userLibrary by viewModel.userLibrary.collectAsState()
     var isFavorite by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // Load book dan userLibrary data
     LaunchedEffect(key1 = bookId) {
         viewModel.loadBook(bookId)
         viewModel.loadUserLibrary(userId, bookId)
     }
 
+    // Penanganan state loading
     if (book == null || userLibrary == null) {
         Box(
-            modifier = modifier.fillMaxSize(), // Gunakan modifier di sini juga
+            modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             CircularProgressIndicator()
@@ -60,7 +61,7 @@ fun YourFinishBookScreen(
     }
 
     Column(
-        modifier = modifier // 2. Terapkan modifier dari parameter ke Column utama
+        modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())
@@ -73,18 +74,41 @@ fun YourFinishBookScreen(
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Image(
-                painter = rememberAsyncImagePainter(book?.coverPhotoPath ?: ""),
-                contentDescription = "Book Cover",
-                modifier = Modifier
-                    .width(170.dp)
-                    .height(255.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
-            )
+            // ===================================================================
+            // BAGIAN COVER DIUBAH untuk menambahkan fallback "No Cover"
+            // ===================================================================
+            if (book?.coverPhotoPath.isNullOrEmpty()) {
+                Surface(
+                    modifier = Modifier
+                        .width(170.dp)
+                        .height(255.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "No Cover",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            } else {
+                Image(
+                    painter = rememberAsyncImagePainter(book?.coverPhotoPath),
+                    contentDescription = "Book Cover",
+                    modifier = Modifier
+                        .width(170.dp)
+                        .height(255.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
+            // ===================================================================
 
             Spacer(modifier = Modifier.width(16.dp))
 
+            // Kotak Rating tidak diubah
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -114,6 +138,11 @@ fun YourFinishBookScreen(
         }
         Spacer(modifier = Modifier.height(16.dp))
 
+        // ===================================================================
+        // BAGIAN JUDUL, INFO, DAN DESKRIPSI DIUBAH agar layoutnya sama
+        // dengan YourWishlistBookScreen
+        // ===================================================================
+
         // Judul dan Tombol Favorit
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -137,14 +166,21 @@ fun YourFinishBookScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // Author dan Publisher (mengikuti layout baru)
         Text(
-            text = book?.publisher ?: "Unknown",
+            text = "by ${book?.author ?: "Unknown"}",
             style = MaterialTheme.typography.bodyLarge,
+            color = hitam
+        )
+        Text(
+            text = "Published by ${book?.publisher ?: "Unknown"}",
+            style = MaterialTheme.typography.bodyMedium,
             color = hijau5
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Divider(modifier = Modifier.padding(vertical = 16.dp))
 
+        // Deskripsi
         Text(
             text = book?.description ?: "No description available.",
             style = MaterialTheme.typography.bodyLarge,
@@ -156,19 +192,19 @@ fun YourFinishBookScreen(
         // Informasi Buku
         Text(
             text = "Book Info",
-            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             color = hitam
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Text("Authors: ${book?.author ?: "Unknown"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
-        Text("Genre: ${book?.genre ?: "Unknown"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
+        Text("Genre: ${book?.author ?: "Unknown"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
         Text("Number of Pages: ${book?.pages ?: "Unknown"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
         Text("Date Published: ${book?.year ?: "Unknown"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
         Text("ISBN: ${book?.isbn ?: "Unknown"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
+        // ===================================================================
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Tombol Aksi
+        // Tombol Aksi (tidak diubah)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -190,11 +226,10 @@ fun YourFinishBookScreen(
                         viewModel.readAgain(userId, bookId)
                         Toast.makeText(context, "Book set to Reading. Progress reset!", Toast.LENGTH_SHORT).show()
 
-                        // Navigasi ke Reading Book Screen setelah status diubah
                         val updatedLibraryItem = viewModel.userLibrary.value
                         if (updatedLibraryItem != null) {
                             navController.navigate(Screen.YourReadingBook.createRoute(updatedLibraryItem.id!!)) {
-                                popUpTo(Screen.Home.route) // Kembali ke Home setelah aksi
+                                popUpTo(Screen.Home.route)
                             }
                         }
                     }

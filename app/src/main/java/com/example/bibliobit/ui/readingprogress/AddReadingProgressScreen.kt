@@ -40,26 +40,21 @@ fun AddReadingProgressScreen(
     val firstReadingProgress by viewModel.firstReadingProgress.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // Ambil state navigasi dari ViewModel
     val bookIdToNavigate by viewModel.navigateToFinishedBookScreen.collectAsState()
     val isUpdateComplete by viewModel.progressUpdateComplete.collectAsState()
 
-    // State lokal untuk form
     var currentPage by remember { mutableStateOf("") }
     var startDate by remember { mutableStateOf<Date?>(null) }
     var lastReadingDate by remember { mutableStateOf(Date()) }
     var isFinished by remember { mutableStateOf(false) }
 
-    // State untuk mengontrol visibilitas DatePickerDialog
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showLastDatePicker by remember { mutableStateOf(false) }
 
-    // Panggil `initialize` untuk memeriksa apakah sudah ada progres sebelumnya
     LaunchedEffect(key1 = userLibraryId) {
         viewModel.initialize(userLibraryId)
     }
 
-    // LaunchedEffect untuk navigasi ke Finished Book Screen
     LaunchedEffect(bookIdToNavigate) {
         bookIdToNavigate?.let { bookId ->
             navController.navigate(Screen.YourFinishBook.createRoute(bookId)) {
@@ -69,14 +64,12 @@ fun AddReadingProgressScreen(
         }
     }
 
-    // LaunchedEffect untuk kembali (pop back) setelah update biasa
     LaunchedEffect(isUpdateComplete) {
         if (isUpdateComplete) {
             navController.popBackStack()
             viewModel.onProgressUpdateNavigationComplete()
         }
     }
-
 
     Dialog(onDismissRequest = { navController.popBackStack() }) {
         Surface(
@@ -181,6 +174,16 @@ fun AddReadingProgressScreen(
         }
     }
 
+    // Mendapatkan timestamp untuk akhir hari ini (UTC)
+    val endOfTodayMillis = remember {
+        Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }.timeInMillis
+    }
+
     if (showStartDatePicker) {
         CustomDatePickerDialog(
             onDateSelected = { date ->
@@ -191,9 +194,12 @@ fun AddReadingProgressScreen(
                 }
             },
             onDismiss = { showStartDatePicker = false },
-            selectableDates = remember { // Start date bisa tanggal berapa saja
+            // Aturan untuk Start Date: tidak bisa setelah hari ini
+            selectableDates = remember {
                 object : SelectableDates {
-                    override fun isSelectableDate(utcTimeMillis: Long) = true
+                    override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                        return utcTimeMillis <= endOfTodayMillis
+                    }
                 }
             }
         )
@@ -209,17 +215,24 @@ fun AddReadingProgressScreen(
                 }
             },
             onDismiss = { showLastDatePicker = false },
-            selectableDates = remember { // Hanya bisa memilih tanggal hari ini dan ke depan
+            // Aturan untuk Last Reading Date: tidak bisa sebelum start date & tidak bisa setelah hari ini
+            selectableDates = remember(startDate) {
                 object : SelectableDates {
-                    private val startOfToday = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-                        set(Calendar.HOUR_OF_DAY, 0)
-                        set(Calendar.MINUTE, 0)
-                        set(Calendar.SECOND, 0)
-                        set(Calendar.MILLISECOND, 0)
-                    }.timeInMillis
+                    // Dapatkan timestamp awal hari dari startDate (jika ada)
+                    private val startOfStartDateMillis = startDate?.let {
+                        Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                            time = it
+                            set(Calendar.HOUR_OF_DAY, 0)
+                            set(Calendar.MINUTE, 0)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }.timeInMillis
+                    }
 
                     override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                        return utcTimeMillis >= startOfToday
+                        val isAfterOrOnStartDate = startOfStartDateMillis?.let { utcTimeMillis >= it } ?: true
+                        val isBeforeOrOnToday = utcTimeMillis <= endOfTodayMillis
+                        return isAfterOrOnStartDate && isBeforeOrOnToday
                     }
                 }
             }

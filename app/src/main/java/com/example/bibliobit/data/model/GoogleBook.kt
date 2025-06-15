@@ -3,6 +3,7 @@ package com.example.bibliobit.data.model
 import com.google.gson.annotations.SerializedName
 
 data class GoogleBook(
+    @SerializedName("google_id") val googleId: String?, // <-- TAMBAHKAN INI
     @SerializedName("title") val title: String,
     @SerializedName("author") val author: String,
     @SerializedName("publisher") val publisher: String?,

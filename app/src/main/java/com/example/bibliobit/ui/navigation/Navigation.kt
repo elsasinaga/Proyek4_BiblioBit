@@ -22,6 +22,7 @@ import com.example.bibliobit.data.repository.AuthRepository
 import com.example.bibliobit.ui.HomeScreen
 import com.example.bibliobit.ui.addbook.AddBookScreen
 import com.example.bibliobit.ui.addbook.AddBookViewModel
+import com.example.bibliobit.ui.barcodescanner.BarcodeScannerScreen
 import com.example.bibliobit.ui.bookdetail.BookDetailScreen
 import com.example.bibliobit.ui.bookdetail.BookDetailViewModel
 import com.example.bibliobit.ui.components.AppScaffold
@@ -92,6 +93,7 @@ sealed class Screen(val route: String) {
     object Notes : Screen("notes/{userLibraryId}/{bookTitle}") {
         fun createRoute(userLibraryId: Long, bookTitle: String) = "notes/$userLibraryId/$bookTitle"
     }
+    object BarcodeScanner : Screen("barcode_scanner")
 }
 
 
@@ -204,8 +206,19 @@ fun AppNavHost(
             }
         }
 
-        composable(Screen.Add.route) {
+        composable(Screen.Add.route) { backStackEntry ->
             val viewModel: AddBookViewModel = hiltViewModel()
+            val scannedIsbn = backStackEntry.savedStateHandle.get<String>("scanned_isbn")
+            LaunchedEffect(scannedIsbn) {
+                if (scannedIsbn != null) {
+                    val bookId = viewModel.findAndProcessScannedIsbn(scannedIsbn)
+                    if (bookId != -1L) {
+                        navController.navigate(Screen.BookDetail.createRoute(bookId))
+                    }
+                    backStackEntry.savedStateHandle.remove<String>("scanned_isbn")
+                }
+            }
+
             AppScaffold(navController = navController, title = "Add Book") { contentModifier ->
                 AddBookScreen(
                     modifier = contentModifier,
@@ -434,5 +447,20 @@ fun AppNavHost(
                 )
             }
         }
+
+        composable(Screen.BarcodeScanner.route) {
+            BarcodeScannerScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onBarcodeScanned = { isbnResult ->
+                    // Kirim hasil pindaian kembali ke AddBookScreen
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("scanned_isbn", isbnResult)
+                    // Kembali ke layar sebelumnya
+                    navController.popBackStack()
+                }
+            )
+        }
+
     }
 }

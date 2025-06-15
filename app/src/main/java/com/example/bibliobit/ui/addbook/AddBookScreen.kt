@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -89,29 +90,21 @@ fun AddBookScreen(
                 modifier = Modifier.weight(1f).padding(end = 8.dp),
                 placeholder = { Text("Search books...") },
                 leadingIcon = { Icon(Icons.Default.Search, "Search Icon", tint = hijau4) },
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
+                trailingIcon = {
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { viewModel.onSearchQueryChanged("") }) {
+                            Icon(Icons.Default.Close, "Hapus")
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp)
             )
-
-            IconButton(
-                onClick = { /* Placeholder untuk fungsi scan */ },
-                modifier = Modifier.padding(end = 8.dp)
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.barcode_scanner),
-                    contentDescription = "Scan Book",
-                    tint = hijau4
-                )
+            IconButton(onClick = { navController.navigate(Screen.BarcodeScanner.route) }) {
+                Icon(painterResource(id = R.drawable.barcode_scanner), "Scan", tint = hijau4)
             }
-
-            IconButton(
-                onClick = { showAddBookDialog = true }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Book Manually",
-                    tint = hijau4
-                )
+            IconButton(onClick = { showAddBookDialog = true }) {
+                Icon(Icons.Default.Add, "Tambah Manual", tint = hijau4)
             }
         }
 

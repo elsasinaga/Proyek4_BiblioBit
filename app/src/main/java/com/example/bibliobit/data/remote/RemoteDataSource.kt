@@ -6,6 +6,7 @@ import com.example.bibliobit.data.model.Note
 import com.example.bibliobit.data.model.ReadingProgress
 import com.example.bibliobit.data.remote.request.UpdateUserLibraryRequest
 import com.example.bibliobit.data.remote.request.UserLibraryRequest
+import com.example.bibliobit.data.remote.response.StatisticResponse
 import com.example.bibliobit.data.remote.response.UserLibraryResponse
 import com.google.firebase.auth.FirebaseAuth
 import okhttp3.MultipartBody
@@ -83,5 +84,9 @@ class RemoteDataSource @Inject constructor(
 
     suspend fun deleteNote(noteId: Long) {
         handleResponse(apiService.deleteNote(noteId))
+    }
+
+    suspend fun getStatistics(filter: String): StatisticResponse {
+        return apiService.getStatistics(filter)
     }
 }

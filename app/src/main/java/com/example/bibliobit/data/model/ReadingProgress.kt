@@ -8,5 +8,6 @@ data class ReadingProgress(
     @SerializedName("user_library_id") val userLibraryId: Long,
 
     @SerializedName("page_read") val pageRead: Int,
-    @SerializedName("recorded_at") val recordedAt: Date? = null
+    @SerializedName("recorded_at") val recordedAt: Date? = null,
+    @SerializedName("user_library") val userLibrary: UserLibrary? = null
 )

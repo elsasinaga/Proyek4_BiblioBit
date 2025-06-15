@@ -3,30 +3,18 @@ package com.example.bibliobit.ui.statistic
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.bibliobit.data.model.Book
-import com.example.bibliobit.data.model.BookStatus
 import com.example.bibliobit.data.model.ReadingProgress
-import com.example.bibliobit.data.model.UserLibrary
-import com.example.bibliobit.data.repository.UserLibraryRepository
-import com.example.bibliobit.data.repository.ReadingProgressRepository
+import com.example.bibliobit.data.repository.StatisticRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 import javax.inject.Inject
-
-// Definisikan di sini agar bisa diakses oleh screen
-data class ReadingHistoryEntry(
-    val book: Book,
-    val progress: ReadingProgress
-)
 
 @HiltViewModel
 class StatisticViewModel @Inject constructor(
-    private val userLibraryRepository: UserLibraryRepository,
-    private val readingProgressRepository: ReadingProgressRepository
+    private val statisticRepository: StatisticRepository
 ) : ViewModel() {
 
     private val _selectedFilter = MutableStateFlow("week")
@@ -47,19 +35,25 @@ class StatisticViewModel @Inject constructor(
     private val _totalBooksFinished = MutableStateFlow(0)
     val totalBooksFinished: StateFlow<Int> = _totalBooksFinished.asStateFlow()
 
-    private val _readingHistory = MutableStateFlow<List<ReadingHistoryEntry>>(emptyList())
-    val readingHistory: StateFlow<List<ReadingHistoryEntry>> = _readingHistory.asStateFlow()
+    private val _readingHistory = MutableStateFlow<List<ReadingProgress>>(emptyList())
+    val readingHistory: StateFlow<List<ReadingProgress>> = _readingHistory.asStateFlow()
 
     private val _finishedBooks = MutableStateFlow<List<Book>>(emptyList())
     val finishedBooks: StateFlow<List<Book>> = _finishedBooks.asStateFlow()
 
-    fun setUserId(userId: String) {
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    init {
         loadStatistics()
     }
 
     fun setFilter(filter: String) {
         _selectedFilter.value = filter
-        loadStatistics()
+        loadStatistics() // Panggil ulang untuk mendapatkan data dengan filter baru
     }
 
     fun setStatisticType(type: String) {
@@ -68,74 +62,21 @@ class StatisticViewModel @Inject constructor(
 
     private fun loadStatistics() {
         viewModelScope.launch {
-            try {
-                val userLibraryList = userLibraryRepository.getUserLibrary()
-                val allProgress = readingProgressRepository.getAllReadingProgress()
-
-                // Proses Statistik Halaman
-                val filteredProgress = filterProgressByTime(allProgress, _selectedFilter.value)
-                _totalPagesRead.value = filteredProgress.sumOf { it.pageRead } // Ini bisa disesuaikan logikanya
-                _pagesReadData.value = groupPagesByFilter(filteredProgress, _selectedFilter.value)
-
-                // Proses Statistik Buku Selesai
-                val finishedLibraryItems = userLibraryList.filter { it.status == BookStatus.FINISH }
-                val filteredFinishedItems = filterFinishedBooksByTime(finishedLibraryItems, _selectedFilter.value)
-                _totalBooksFinished.value = filteredFinishedItems.size
-                _booksFinishedData.value = groupBooksByFilter(filteredFinishedItems, _selectedFilter.value)
-                _finishedBooks.value = filteredFinishedItems.mapNotNull { it.book }
-
-                // Proses Reading History
-                val historyEntries = mutableListOf<ReadingHistoryEntry>()
-                val libraryMap = userLibraryList.associateBy { it.id }
-                allProgress.forEach { progress ->
-                    libraryMap[progress.userLibraryId]?.book?.let { book ->
-                        historyEntries.add(ReadingHistoryEntry(book, progress))
-                    }
+            _isLoading.value = true
+            _errorMessage.value = null
+            statisticRepository.getStatistics(filter = _selectedFilter.value)
+                .onSuccess { response ->
+                    _totalPagesRead.value = response.totalPagesRead
+                    _pagesReadData.value = response.pagesReadData
+                    _totalBooksFinished.value = response.totalBooksFinished
+                    _booksFinishedData.value = response.booksFinishedData
+                    _readingHistory.value = response.readingHistory
+                    _finishedBooks.value = response.finishedBooks
                 }
-                _readingHistory.value = historyEntries.sortedByDescending { it.progress.recordedAt }
-
-            } catch (e: Exception) {
-                // Handle error
-            }
+                .onFailure { error ->
+                    _errorMessage.value = "Gagal memuat statistik: ${error.message}"
+                }
+            _isLoading.value = false
         }
-    }
-
-    // --- Helper Functions ---
-    private fun filterProgressByTime(progressList: List<ReadingProgress>, filter: String): List<ReadingProgress> {
-        val now = Calendar.getInstance()
-        return progressList.filter {
-            val progressDate = Calendar.getInstance().apply { time = it.recordedAt ?: Date() }
-            when (filter) {
-                "day" -> now.get(Calendar.DAY_OF_YEAR) == progressDate.get(Calendar.DAY_OF_YEAR) && now.get(Calendar.YEAR) == progressDate.get(Calendar.YEAR)
-                "week" -> now.get(Calendar.WEEK_OF_YEAR) == progressDate.get(Calendar.WEEK_OF_YEAR) && now.get(Calendar.YEAR) == progressDate.get(Calendar.YEAR)
-                "month" -> now.get(Calendar.MONTH) == progressDate.get(Calendar.MONTH) && now.get(Calendar.YEAR) == progressDate.get(Calendar.YEAR)
-                "year" -> now.get(Calendar.YEAR) == progressDate.get(Calendar.YEAR)
-                else -> true
-            }
-        }
-    }
-
-    private fun filterFinishedBooksByTime(books: List<UserLibrary>, filter: String): List<UserLibrary> {
-        val now = Calendar.getInstance()
-        return books.filter {
-            val bookDate = Calendar.getInstance().apply { time = it.updatedAt ?: Date() }
-            when (filter) {
-                "day" -> now.get(Calendar.DAY_OF_YEAR) == bookDate.get(Calendar.DAY_OF_YEAR) && now.get(Calendar.YEAR) == bookDate.get(Calendar.YEAR)
-                "week" -> now.get(Calendar.WEEK_OF_YEAR) == bookDate.get(Calendar.WEEK_OF_YEAR) && now.get(Calendar.YEAR) == bookDate.get(Calendar.YEAR)
-                "month" -> now.get(Calendar.MONTH) == bookDate.get(Calendar.MONTH) && now.get(Calendar.YEAR) == bookDate.get(Calendar.YEAR)
-                "year" -> now.get(Calendar.YEAR) == bookDate.get(Calendar.YEAR)
-                else -> true
-            }
-        }
-    }
-
-    private fun groupPagesByFilter(progressList: List<ReadingProgress>, filter: String): Map<String, Int> {
-        // Implementasi lengkap Anda...
-        return emptyMap()
-    }
-
-    private fun groupBooksByFilter(books: List<UserLibrary>, filter: String): Map<String, Int> {
-        // Implementasi lengkap Anda...
-        return emptyMap()
     }
 }

@@ -1,53 +1,52 @@
 package com.example.bibliobit.ui.statistic
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-// Import yang benar cukup satu kali
 import coil.compose.rememberAsyncImagePainter
 import com.example.bibliobit.data.model.Book
+import com.example.bibliobit.data.model.ReadingProgress
 import com.example.bibliobit.ui.components.BarChart
 import com.example.bibliobit.ui.components.StatisticFilterButton
-import com.example.bibliobit.ui.theme.abu3
+import com.example.bibliobit.ui.theme.abu2
 import com.example.bibliobit.ui.theme.hijau4
-import com.google.firebase.auth.FirebaseAuth
+import com.example.bibliobit.ui.theme.hijau5
+import com.example.bibliobit.ui.theme.hitam
 import java.text.SimpleDateFormat
-import java.util.Locale
+import java.util.*
 
 @Composable
 fun StatisticScreen(
     modifier: Modifier = Modifier,
     viewModel: StatisticViewModel
 ) {
-    LaunchedEffect(Unit) {
-        val userId = FirebaseAuth.getInstance().currentUser?.uid
-        if (userId != null) {
-            viewModel.setUserId(userId)
-        }
-    }
-
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val statisticType by viewModel.statisticType.collectAsState()
     val pagesReadData by viewModel.pagesReadData.collectAsState()
@@ -56,90 +55,67 @@ fun StatisticScreen(
     val totalBooksFinished by viewModel.totalBooksFinished.collectAsState()
     val readingHistory by viewModel.readingHistory.collectAsState()
     val finishedBooks by viewModel.finishedBooks.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
-            .verticalScroll(rememberScrollState())
     ) {
-        // Dropdown untuk memilih jenis statistik
         StatisticTypeDropdown(
             selectedType = statisticType,
-            onTypeSelected = { type ->
-                viewModel.setStatisticType(type)
-            }
+            onTypeSelected = { viewModel.setStatisticType(it) }
         )
-
         Spacer(modifier = Modifier.height(16.dp))
-
-        // Filter Buttons
         StatisticFilterButton(
             selectedFilter = selectedFilter,
-            onFilterSelected = { filter ->
-                viewModel.setFilter(filter)
-            },
+            onFilterSelected = { viewModel.setFilter(it) },
             modifier = Modifier.fillMaxWidth()
         )
-
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Total Statistik
-        Text(
-            text = if (statisticType == "pages") "Halaman yang dibaca" else "Buku yang selesai",
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            color = abu3
-        )
-        Text(
-            text = if (statisticType == "pages") totalPagesRead.toString() else totalBooksFinished.toString(),
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.ExtraBold,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center,
-            color = abu3
-        )
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else if (errorMessage != null) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = errorMessage!!, color = MaterialTheme.colorScheme.error)
+            }
+        } else {
+            Text(text = if (statisticType == "pages") "Halaman yang dibaca" else "Buku yang selesai", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = abu2)
+            Text(text = if (statisticType == "pages") totalPagesRead.toString() else totalBooksFinished.toString(), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = hitam)
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+            BarChart(
+                data = if (statisticType == "pages") pagesReadData else booksFinishedData,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            )
+            Spacer(modifier = Modifier.height(24.dp))
 
-        // Bar Chart
-        BarChart(
-            data = if (statisticType == "pages") pagesReadData else booksFinishedData,
-            isScrollable = selectedFilter == "day",
-            modifier = Modifier.fillMaxWidth().height(200.dp)
-        )
+            Text(text = if (statisticType == "pages") "Riwayat Membaca" else "Buku Selesai", style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), color = hitam)
+            Spacer(modifier = Modifier.height(8.dp))
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Book History atau Reading History
-        Text(
-            text = if (statisticType == "pages") "Reading History" else "Finished Books",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = abu3
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Box(modifier = Modifier.weight(1f, fill = false)) {
-            if (statisticType == "pages") {
-                if (readingHistory.isEmpty()) {
-                    Text("No reading history available.")
-                } else {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(readingHistory) { entry ->
-                            ReadingHistoryItem(entry = entry)
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                if (statisticType == "pages") {
+                    if (readingHistory.isEmpty()) {
+                        item { Text("Tidak ada riwayat membaca pada periode ini.", color = abu2, modifier = Modifier.padding(vertical = 16.dp)) }
+                    } else {
+                        items(readingHistory) { progress ->
+                            ReadingHistoryItem(progress = progress)
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
-                }
-            } else {
-                if (finishedBooks.isEmpty()) {
-                    Text("No finished books available.")
                 } else {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (finishedBooks.isEmpty()) {
+                        item { Text("Tidak ada buku yang selesai dibaca pada periode ini.", color = abu2, modifier = Modifier.padding(vertical = 16.dp)) }
+                    } else {
                         items(finishedBooks) { book ->
                             BookHistoryItem(book = book)
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
                     }
                 }
@@ -165,7 +141,7 @@ fun StatisticTypeDropdown(
         ) {
             Text(
                 text = if (selectedType == "pages") "Pages Read" else "Books Finished",
-                color = abu3
+                color = abu2
             )
         }
         DropdownMenu(
@@ -192,8 +168,11 @@ fun StatisticTypeDropdown(
 
 @Composable
 fun ReadingHistoryItem(
-    entry: ReadingHistoryEntry
+    progress: ReadingProgress
 ) {
+    val book = progress.userLibrary?.book
+    if (book == null) return
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -202,7 +181,7 @@ fun ReadingHistoryItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
-            painter = rememberAsyncImagePainter(entry.book.coverPhotoPath),
+            painter = rememberAsyncImagePainter(model = book.coverPhotoPath),
             contentDescription = "Book Cover",
             modifier = Modifier
                 .width(50.dp)
@@ -213,16 +192,16 @@ fun ReadingHistoryItem(
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text(
-                text = entry.book.title,
+                text = book.title,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                color = abu3
+                color = hitam
             )
             Text(
-                text = "Read up to page ${entry.progress.pageRead}",
+                text = "Membaca ${progress.pageRead} halaman",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
-            entry.progress.recordedAt?.let { date ->
+            progress.recordedAt?.let { date ->
                 Text(
                     text = SimpleDateFormat("dd MMMM, HH:mm", Locale.getDefault()).format(date),
                     style = MaterialTheme.typography.bodySmall,
@@ -245,8 +224,7 @@ fun BookHistoryItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
-            // ## DIPERBAIKI: Typo 'Imagepainter' menjadi 'ImagePainter' ##
-            painter = rememberAsyncImagePainter(book.coverPhotoPath),
+            painter = rememberAsyncImagePainter(model = book.coverPhotoPath),
             contentDescription = "Book Cover",
             modifier = Modifier
                 .width(50.dp)
@@ -259,10 +237,10 @@ fun BookHistoryItem(
             Text(
                 text = book.title,
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                color = abu3
+                color = hitam
             )
             Text(
-                text = "by ${book.author}",
+                text = "oleh ${book.author}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )

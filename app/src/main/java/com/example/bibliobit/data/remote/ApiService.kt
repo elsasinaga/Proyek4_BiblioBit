@@ -6,6 +6,7 @@ import com.example.bibliobit.data.model.Note
 import com.example.bibliobit.data.model.ReadingProgress
 import com.example.bibliobit.data.remote.request.UpdateUserLibraryRequest
 import com.example.bibliobit.data.remote.request.UserLibraryRequest
+import com.example.bibliobit.data.remote.response.StatisticResponse
 import com.example.bibliobit.data.remote.response.UserLibraryResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -90,4 +91,10 @@ interface ApiService {
 
     @DELETE("api/notes/{noteId}")
     suspend fun deleteNote(@Path("noteId") noteId: Long): Response<Unit>
+
+    // --- Statistic ---
+    @GET("api/statistics")
+    suspend fun getStatistics(
+        @Query("filter") filter: String
+    ): StatisticResponse
 }

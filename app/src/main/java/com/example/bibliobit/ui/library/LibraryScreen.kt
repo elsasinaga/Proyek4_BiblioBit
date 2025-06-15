@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.bibliobit.data.model.BookStatus
+import com.example.bibliobit.ui.components.FilterBar
 import com.example.bibliobit.ui.components.FinishBookItem
 import com.example.bibliobit.ui.components.ReadingBookItem
 import com.example.bibliobit.ui.components.WishlistBookItem
@@ -30,11 +31,16 @@ fun LibraryScreen(
     viewModel: LibraryViewModel,
     navController: NavHostController
 ) {
+    // State untuk UI, sekarang sepenuhnya dikontrol oleh ViewModel
     var searchQuery by remember { mutableStateOf("") }
-    var selectedFilter by remember { mutableStateOf<BookStatus?>(null) }
     var isDeleteMode by remember { mutableStateOf(false) }
 
-    // LaunchedEffect untuk memuat data awal saat userId tersedia
+    // 1. Ambil state filter LANGSUNG dari ViewModel
+    val selectedFilter by viewModel.filter.collectAsState()
+    val libraryItems by viewModel.libraryItems.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    // LaunchedEffect untuk memuat data awal (tidak berubah)
     LaunchedEffect(Unit) {
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId != null) {
@@ -42,25 +48,36 @@ fun LibraryScreen(
         }
     }
 
-    val libraryItems by viewModel.libraryItems.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Filter Bar
-        LibraryFilterBar(
-            selectedFilter = selectedFilter,
-            onFilterSelected = { status ->
-                selectedFilter = status
-                viewModel.setFilter(status)
+        // Logika "Adapter" untuk konversi tipe data (tidak berubah)
+        val selectedFilterKey = when (selectedFilter) {
+            BookStatus.PLAN_TO_READ -> "wishlist"
+            BookStatus.READING -> "reading"
+            BookStatus.FINISH -> "finish"
+            null -> "all"
+        }
+
+        // Memanggil FilterBar dari komponen Anda
+        FilterBar(
+            selectedFilter = selectedFilterKey,
+            onFilterSelected = { filterKey ->
+                // 2. Logika onFilterSelected disederhanakan, HANYA memanggil ViewModel
+                val newStatus = when (filterKey) {
+                    "wishlist" -> BookStatus.PLAN_TO_READ
+                    "reading" -> BookStatus.READING
+                    "finish" -> BookStatus.FINISH
+                    else -> null // untuk "all"
+                }
+                viewModel.setFilter(newStatus)
             },
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
         )
 
-        // Search Bar dan Tombol Hapus
+        // Search Bar dan Tombol Hapus (tidak berubah)
         Row(
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -88,7 +105,7 @@ fun LibraryScreen(
             }
         }
 
-        // Loading Indicator atau Daftar Buku
+        // Daftar Buku (tidak berubah)
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
@@ -111,7 +128,6 @@ fun LibraryScreen(
                     Box(
                         modifier = Modifier.clickable {
                             if (!isDeleteMode) {
-                                // Logika navigasi cerdas berdasarkan status buku
                                 when (userLibrary.status) {
                                     BookStatus.READING -> {
                                         navController.navigate(Screen.YourReadingBook.createRoute(userLibrary.id!!))
@@ -126,7 +142,6 @@ fun LibraryScreen(
                             }
                         }
                     ) {
-                        // Tampilan item tetap sama, hanya logika klik yang diubah
                         when (userLibrary.status) {
                             BookStatus.PLAN_TO_READ -> WishlistBookItem(
                                 book = book,
@@ -150,37 +165,6 @@ fun LibraryScreen(
                     }
                 }
             }
-        }
-    }
-}
-
-/**
- * Komponen FilterBar.
- */
-@Composable
-fun LibraryFilterBar(
-    selectedFilter: BookStatus?,
-    onFilterSelected: (BookStatus?) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val filters = mapOf(
-        "All" to null,
-        "Wishlist" to BookStatus.PLAN_TO_READ,
-        "Reading" to BookStatus.READING,
-        "Finish" to BookStatus.FINISH
-    )
-
-    ScrollableTabRow(
-        selectedTabIndex = filters.values.indexOf(selectedFilter),
-        modifier = modifier,
-        edgePadding = 0.dp
-    ) {
-        filters.forEach { (label, status) ->
-            Tab(
-                selected = selectedFilter == status,
-                onClick = { onFilterSelected(status) },
-                text = { Text(label) }
-            )
         }
     }
 }

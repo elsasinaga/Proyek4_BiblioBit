@@ -22,8 +22,10 @@ import androidx.navigation.NavHostController
 import com.example.bibliobit.ui.navigation.Screen
 import com.example.bibliobit.ui.theme.hijau5
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -60,12 +62,9 @@ fun AddReadingProgressScreen(
     // LaunchedEffect untuk navigasi ke Finished Book Screen
     LaunchedEffect(bookIdToNavigate) {
         bookIdToNavigate?.let { bookId ->
-            // Navigasi ke finish screen dan bersihkan back stack
             navController.navigate(Screen.YourFinishBook.createRoute(bookId)) {
-                // Hapus semua layar sampai Home, lalu buka YourFinishBookScreen
                 popUpTo(Screen.Home.route)
             }
-            // Reset sinyal setelah navigasi selesai
             viewModel.onNavigationToFinishedBookComplete()
         }
     }
@@ -74,7 +73,6 @@ fun AddReadingProgressScreen(
     LaunchedEffect(isUpdateComplete) {
         if (isUpdateComplete) {
             navController.popBackStack()
-            // Reset sinyal setelah navigasi selesai
             viewModel.onProgressUpdateNavigationComplete()
         }
     }
@@ -171,7 +169,6 @@ fun AddReadingProgressScreen(
                                     } else {
                                         viewModel.addReadingProgress(userLibraryId, pageRead, lastReadingDate, isFinished)
                                     }
-                                    // Navigasi tidak lagi dilakukan di sini, tetapi oleh LaunchedEffect
                                 },
                                 enabled = !isLoading
                             ) {
@@ -193,7 +190,12 @@ fun AddReadingProgressScreen(
                     startDate = date
                 }
             },
-            onDismiss = { showStartDatePicker = false }
+            onDismiss = { showStartDatePicker = false },
+            selectableDates = remember { // Start date bisa tanggal berapa saja
+                object : SelectableDates {
+                    override fun isSelectableDate(utcTimeMillis: Long) = true
+                }
+            }
         )
     }
 
@@ -206,7 +208,21 @@ fun AddReadingProgressScreen(
                     lastReadingDate = date
                 }
             },
-            onDismiss = { showLastDatePicker = false }
+            onDismiss = { showLastDatePicker = false },
+            selectableDates = remember { // Hanya bisa memilih tanggal hari ini dan ke depan
+                object : SelectableDates {
+                    private val startOfToday = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                        set(Calendar.HOUR_OF_DAY, 0)
+                        set(Calendar.MINUTE, 0)
+                        set(Calendar.SECOND, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }.timeInMillis
+
+                    override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                        return utcTimeMillis >= startOfToday
+                    }
+                }
+            }
         )
     }
 }
@@ -232,9 +248,13 @@ private fun DateField(label: String, date: Date?, onIconClick: () -> Unit) {
 @Composable
 private fun CustomDatePickerDialog(
     onDateSelected: (Date) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    selectableDates: SelectableDates // Parameter baru untuk validasi tanggal
 ) {
-    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = System.currentTimeMillis())
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = System.currentTimeMillis(),
+        selectableDates = selectableDates // Terapkan validasi di sini
+    )
 
     DatePickerDialog(
         onDismissRequest = { onDismiss() },

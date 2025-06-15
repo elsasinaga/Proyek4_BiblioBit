@@ -34,6 +34,7 @@ fun YourFinishBookScreen(
     bookId: Long,
     viewModel: YourFinishBookViewModel,
     navController: NavHostController,
+    modifier: Modifier = Modifier, // 1. Tambahkan parameter modifier di sini
     onNavigateBack: () -> Unit
 ) {
     val book by viewModel.book.collectAsState()
@@ -50,7 +51,7 @@ fun YourFinishBookScreen(
 
     if (book == null || userLibrary == null) {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = modifier.fillMaxSize(), // Gunakan modifier di sini juga
             contentAlignment = Alignment.Center
         ) {
             CircularProgressIndicator()
@@ -58,9 +59,8 @@ fun YourFinishBookScreen(
         return
     }
 
-
     Column(
-        modifier = Modifier
+        modifier = modifier // 2. Terapkan modifier dari parameter ke Column utama
             .fillMaxSize()
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())

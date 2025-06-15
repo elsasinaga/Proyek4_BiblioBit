@@ -314,8 +314,9 @@ fun AppNavHost(
             val viewModel: YourFinishBookViewModel = hiltViewModel()
             val userId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
-            AppScaffold(navController = navController, title = "Finished Book", showBackButton = true) {
+            AppScaffold(navController = navController, title = "Finished Book", showBackButton = true) { contentModifier ->
                 YourFinishBookScreen(
+                    modifier = contentModifier, // <-- PASTIKAN ANDA MENAMBAHKAN INI
                     userId = userId,
                     bookId = bookId,
                     viewModel = viewModel,

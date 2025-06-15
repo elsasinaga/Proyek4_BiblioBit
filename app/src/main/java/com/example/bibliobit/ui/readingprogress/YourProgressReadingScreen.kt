@@ -28,68 +28,56 @@ fun YourProgressReadingScreen(
     bookTitle: String,
     totalPages: Int,
     viewModel: ReadingProgressViewModel,
+    modifier: Modifier = Modifier, // Parameter modifier ditambahkan
     onNavigateBack: () -> Unit,
 ) {
-    // ## PERBAIKAN 1: Ambil state secara terpisah dari ViewModel baru ##
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val userLibrary by viewModel.userLibrary.collectAsState()
     val progressHistory by viewModel.progressHistory.collectAsState()
 
-    // ## PERBAIKAN 2: Panggil fungsi `initialize` yang baru, bukan `loadData` ##
     LaunchedEffect(key1 = userLibraryId) {
         viewModel.initialize(userLibraryId)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Progress History") },
-                // Anda bisa menambahkan tombol kembali di sini jika NavHost Anda meneruskannya
-                // navigationIcon = { IconButton(onClick = onNavigateBack) { Icon(...) } }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp)
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = bookTitle,
-                style = MaterialTheme.typography.titleLarge,
-                color = hitam,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+    // Scaffold dihapus dari sini agar bisa dibungkus oleh AppScaffold
+    Column(
+        modifier = modifier // Terapkan modifier dari AppScaffold di sini
+            .fillMaxSize()
+            .padding(horizontal = 24.dp)
+    ) {
+        // Judul buku sekarang menjadi bagian dari konten utama
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = bookTitle,
+            style = MaterialTheme.typography.titleLarge,
+            color = hitam,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
 
-            // ## PERBAIKAN 3: Gunakan state yang sudah dipisah untuk menampilkan UI ##
-            when {
-                isLoading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
-                    }
-                }
-                error != null -> {
-                    Text(
-                        text = error!!,
-                        color = MaterialTheme.colorScheme.error,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                else -> {
-                    ProgressTimeline(
-                        progressHistory = progressHistory,
-                        isFinished = userLibrary?.status == BookStatus.FINISH,
-                        totalPages = totalPages
-                    )
+        when {
+            isLoading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = hijau5)
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            error != null -> {
+                Text(
+                    text = error!!,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            else -> {
+                ProgressTimeline(
+                    progressHistory = progressHistory,
+                    isFinished = userLibrary?.status == BookStatus.FINISH,
+                    totalPages = totalPages
+                )
+            }
         }
     }
 }
@@ -114,31 +102,28 @@ private fun ProgressTimeline(
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         // Balik urutan agar item pertama (start reading) ada di atas
         val sortedHistory = progressHistory.sortedBy { it.recordedAt }
-        val firstProgress = sortedHistory.firstOrNull()
 
-        // Entri pertama: Mulai Membaca
-        if (firstProgress != null) {
-            item {
+        // Entri progres
+        var lastPage = 0
+        items(sortedHistory) { progress ->
+            // Jangan tampilkan entri 'Start Reading' (halaman 0) jika hanya itu isinya
+            if (progress.pageRead == 0 && sortedHistory.size > 1) {
                 TimelineItem(
-                    date = firstProgress.recordedAt,
+                    date = progress.recordedAt,
                     day = 1,
                     description = "Start Reading!"
                 )
+            } else if (progress.pageRead > 0) {
+                val pageDiff = progress.pageRead - lastPage
+                if (pageDiff > 0) {
+                    TimelineItem(
+                        date = progress.recordedAt,
+                        day = null, // Hari tidak ditampilkan untuk progres biasa
+                        description = "Read until page ${progress.pageRead} (+${pageDiff} pages)"
+                    )
+                }
+                lastPage = progress.pageRead
             }
-        }
-
-        // Entri progres selanjutnya
-        var lastPage = 0
-        items(sortedHistory) { progress ->
-            val pageDiff = progress.pageRead - lastPage
-            if (pageDiff > 0) { // Hanya tampilkan jika ada progres halaman
-                TimelineItem(
-                    date = progress.recordedAt,
-                    day = null, // Hari tidak ditampilkan untuk progres biasa
-                    description = "Read until page ${progress.pageRead} (+${pageDiff} pages)"
-                )
-            }
-            lastPage = progress.pageRead
         }
 
         // Entri terakhir jika sudah selesai
@@ -159,19 +144,15 @@ private fun TimelineItem(date: Date?, day: Int?, description: String) {
     val dateFormat = remember { SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()) }
 
     Row(
-        modifier = Modifier.height(IntrinsicSize.Min) // Membuat Row setinggi kontennya
+        modifier = Modifier.height(IntrinsicSize.Min)
     ) {
         // Kolom untuk titik dan garis
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.width(32.dp)
         ) {
-            // Garis atas (tidak ada untuk item pertama)
-            if (day == null) {
-                Box(modifier = Modifier.width(2.dp).weight(0.4f).background(hijau5))
-            } else {
-                Spacer(modifier = Modifier.weight(0.4f))
-            }
+            // Garis atas
+            Box(modifier = Modifier.width(2.dp).weight(0.4f).background(if (day == 1) MaterialTheme.colorScheme.surface else hijau5))
 
             Surface(shape = CircleShape, color = hijau5, modifier = Modifier.size(16.dp)) {}
 

@@ -408,5 +408,31 @@ fun AppNavHost(
                 )
             }
         }
+
+        composable(
+            route = Screen.YourProgressReading.route,
+            arguments = listOf(
+                navArgument("userLibraryId") { type = NavType.LongType },
+                navArgument("bookTitle") { type = NavType.StringType },
+                navArgument("totalPages") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val userLibraryId = backStackEntry.arguments?.getLong("userLibraryId") ?: 0L
+            val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: "No Title"
+            val totalPages = backStackEntry.arguments?.getInt("totalPages") ?: 0
+            val viewModel: ReadingProgressViewModel = hiltViewModel()
+
+            // Bungkus dengan AppScaffold agar memiliki Top/Bottom bar yang seragam
+            AppScaffold(navController = navController, title = "Progress History", showBackButton = true) { contentModifier ->
+                YourProgressReadingScreen(
+                    modifier = contentModifier,
+                    userLibraryId = userLibraryId,
+                    bookTitle = bookTitle,
+                    totalPages = totalPages,
+                    viewModel = viewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+        }
     }
 }

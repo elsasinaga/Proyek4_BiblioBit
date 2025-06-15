@@ -29,7 +29,8 @@ import java.util.Locale
 fun YourReadingBookScreen(
     userLibraryId: Long,
     viewModel: ReadingProgressViewModel,
-    // Navigasi ditangani oleh callback, bukan NavController langsung
+    modifier: Modifier = Modifier, // Parameter modifier untuk padding dari AppScaffold
+    // Parameter navController dihapus, karena navigasi Top/Bottom Bar di-handle oleh AppScaffold
     onNavigateToAddProgress: (userLibraryId: Long, bookTitle: String, totalPages: Int) -> Unit,
     onNavigateToSeeProgress: (userLibraryId: Long, bookTitle: String, totalPages: Int) -> Unit,
     onNavigateToNotes: (userLibraryId: Long, bookTitle: String) -> Unit
@@ -43,33 +44,38 @@ fun YourReadingBookScreen(
 
     var isFavorite by remember { mutableStateOf(false) }
 
+    // Memuat data saat screen pertama kali dibuka
     LaunchedEffect(key1 = userLibraryId) {
         viewModel.initialize(userLibraryId)
     }
 
+    // Scaffold dihapus dari sini agar bisa dibungkus oleh AppScaffold di level navigasi
+
+    // Handling Loading and Error States
     if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = hijau5)
         }
         return
     }
 
     error?.let {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(it, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center, modifier = Modifier.padding(16.dp))
         }
         return
     }
 
     if (book == null || userLibrary == null || userLibrary?.status != BookStatus.READING) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = "This book is not in your reading list.", style = MaterialTheme.typography.bodyLarge)
+        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(text = "Buku ini tidak dalam daftar bacaan Anda.", style = MaterialTheme.typography.bodyLarge)
         }
         return
     }
 
+    // Main Content
     Column(
-        modifier = Modifier
+        modifier = modifier // Menggunakan modifier dari parameter
             .fillMaxSize()
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())
@@ -85,15 +91,18 @@ fun YourReadingBookScreen(
             Image(
                 painter = rememberAsyncImagePainter(book?.coverPhotoPath ?: ""),
                 contentDescription = "Book Cover",
-                modifier = Modifier.width(170.dp).height(255.dp).clip(RoundedCornerShape(8.dp)),
+                modifier = Modifier
+                    .width(170.dp)
+                    .height(255.dp)
+                    .clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop
             )
             Spacer(modifier = Modifier.width(16.dp))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ProgressInfoCard(title = "Your progress reading", value = "${userLibrary?.lastPageRead ?: 0} / ${book?.pages ?: 0}")
+                ProgressInfoCard(title = "Progres Anda", value = "${userLibrary?.lastPageRead ?: 0} / ${book?.pages ?: 0}")
                 ProgressInfoCard(
-                    title = "From ${firstReadingProgress?.recordedAt?.let { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(it) } ?: "N/A"}",
-                    value = "$daysBetweenStartAndLast Day(s)"
+                    title = "Dari ${firstReadingProgress?.recordedAt?.let { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(it) } ?: "N/A"}",
+                    value = "$daysBetweenStartAndLast Hari"
                 )
             }
         }
@@ -106,7 +115,7 @@ fun YourReadingBookScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = book?.title ?: "Unknown Title",
+                text = book?.title ?: "Judul Tidak Diketahui",
                 style = MaterialTheme.typography.titleLarge,
                 color = hitam,
                 modifier = Modifier.weight(1f)
@@ -121,14 +130,14 @@ fun YourReadingBookScreen(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-        Text(text = "by ${book?.author ?: "Unknown"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
+        Text(text = "oleh ${book?.author ?: "Penulis Tidak Diketahui"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
 
         Divider(modifier = Modifier.padding(vertical = 16.dp))
 
         // Sinopsis
         Text("Sinopsis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = hitam)
         Spacer(modifier = Modifier.height(8.dp))
-        Text(book?.description ?: "No description available.", style = MaterialTheme.typography.bodyMedium, color = abu2)
+        Text(book?.description ?: "Tidak ada deskripsi.", style = MaterialTheme.typography.bodyMedium, color = abu2)
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -142,25 +151,30 @@ fun YourReadingBookScreen(
                     onNavigateToAddProgress(userLibrary?.id!!, book?.title ?: "No Title", book?.pages ?: 0)
                 },
                 modifier = Modifier
-                    .weight(1f).height(50.dp)
+                    .weight(1f)
+                    .height(50.dp)
             ) {
-                Text("Edit Progress", style = MaterialTheme.typography.labelSmall)
+                Text("Edit Progres", style = MaterialTheme.typography.labelSmall)
             }
             Button1(
                 onClick = {
                     onNavigateToSeeProgress(userLibrary?.id!!, book?.title ?: "No Title", book?.pages ?: 0)
                 },
-                modifier = Modifier.weight(1f).height(50.dp)
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp)
             ) {
-                Text("See Progress", style = MaterialTheme.typography.labelSmall)
+                Text("Lihat Progres", style = MaterialTheme.typography.labelSmall)
             }
             Button1(
                 onClick = {
                     onNavigateToNotes(userLibrary?.id!!, book?.title ?: "No Title")
                 },
-                modifier = Modifier.weight(1f).height(50.dp)
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp)
             ) {
-                Text("Notes", style = MaterialTheme.typography.labelSmall)
+                Text("Catatan", style = MaterialTheme.typography.labelSmall)
             }
         }
         Spacer(modifier = Modifier.height(16.dp))

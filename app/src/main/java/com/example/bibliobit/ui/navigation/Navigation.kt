@@ -265,25 +265,23 @@ fun AppNavHost(
             val userLibraryId = backStackEntry.arguments?.getLong("userLibraryId") ?: 0L
             val viewModel: ReadingProgressViewModel = hiltViewModel()
 
-            YourReadingBookScreen(
-                userLibraryId = userLibraryId,
-                viewModel = viewModel,
-                onNavigateToAddProgress = { id, title, pages ->
-                    navController.navigate(
-                        Screen.AddReadingProgress.createRoute(id, title, pages)
-                    )
-                },
-                onNavigateToSeeProgress = { id, title, pages ->
-                    navController.navigate(
-                        Screen.YourProgressReading.createRoute(id, title, pages)
-                    )
-                },
-                onNavigateToNotes = { id, title ->
-                    navController.navigate(
-                        Screen.Notes.createRoute(id, title)
-                    )
-                }
-            )
+            // Bungkus dengan AppScaffold, sama seperti layar lain
+            AppScaffold(navController = navController, title = "Reading Book", showBackButton = true) { contentModifier ->
+                YourReadingBookScreen(
+                    modifier = contentModifier, // Berikan modifier dari AppScaffold
+                    userLibraryId = userLibraryId,
+                    viewModel = viewModel,
+                    onNavigateToAddProgress = { id, title, pages ->
+                        navController.navigate(Screen.AddReadingProgress.createRoute(id, title, pages))
+                    },
+                    onNavigateToSeeProgress = { id, title, pages ->
+                        navController.navigate(Screen.YourProgressReading.createRoute(id, title, pages))
+                    },
+                    onNavigateToNotes = { id, title ->
+                        navController.navigate(Screen.Notes.createRoute(id, title))
+                    }
+                )
+            }
         }
 
         composable(

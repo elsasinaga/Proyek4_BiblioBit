@@ -19,6 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavHostController
+import com.example.bibliobit.ui.navigation.Screen
 import com.example.bibliobit.ui.theme.hijau5
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -37,6 +38,10 @@ fun AddReadingProgressScreen(
     val firstReadingProgress by viewModel.firstReadingProgress.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
+    // Ambil state navigasi dari ViewModel
+    val bookIdToNavigate by viewModel.navigateToFinishedBookScreen.collectAsState()
+    val isUpdateComplete by viewModel.progressUpdateComplete.collectAsState()
+
     // State lokal untuk form
     var currentPage by remember { mutableStateOf("") }
     var startDate by remember { mutableStateOf<Date?>(null) }
@@ -52,101 +57,133 @@ fun AddReadingProgressScreen(
         viewModel.initialize(userLibraryId)
     }
 
-    val showStartDateField = firstReadingProgress == null
+    // LaunchedEffect untuk navigasi ke Finished Book Screen
+    LaunchedEffect(bookIdToNavigate) {
+        bookIdToNavigate?.let { bookId ->
+            // Navigasi ke finish screen dan bersihkan back stack
+            navController.navigate(Screen.YourFinishBook.createRoute(bookId)) {
+                // Hapus semua layar sampai Home, lalu buka YourFinishBookScreen
+                popUpTo(Screen.Home.route)
+            }
+            // Reset sinyal setelah navigasi selesai
+            viewModel.onNavigationToFinishedBookComplete()
+        }
+    }
+
+    // LaunchedEffect untuk kembali (pop back) setelah update biasa
+    LaunchedEffect(isUpdateComplete) {
+        if (isUpdateComplete) {
+            navController.popBackStack()
+            // Reset sinyal setelah navigasi selesai
+            viewModel.onProgressUpdateNavigationComplete()
+        }
+    }
+
 
     Dialog(onDismissRequest = { navController.popBackStack() }) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            modifier = Modifier.fillMaxWidth().padding(0.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(0.dp),
             color = MaterialTheme.colorScheme.surface
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp).fillMaxWidth().verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .defaultMinSize(minHeight = 250.dp)
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Text("Add Your Progress", style = MaterialTheme.typography.titleLarge,textAlign = TextAlign.Center)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(bookTitle, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                Spacer(modifier = Modifier.height(24.dp))
-
-                    DateField(
-                        label = "Start Date of Reading",
-                        date = startDate,
-                        onIconClick = { showStartDatePicker = true }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                // Last Reading Date field
-                DateField(
-                    label = "Last Reading Date",
-                    date = lastReadingDate,
-                    onIconClick = { showLastDatePicker = true }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Current Page field
-                OutlinedTextField(
-                    value = currentPage,
-                    onValueChange = { newValue ->
-                        if (newValue.isEmpty() || (newValue.toLongOrNull() ?: 0L) <= totalPages) {
-                            currentPage = newValue
-                        }
-                    },
-                    label = { Text("Current Page") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    trailingIcon = { Text("/ $totalPages", modifier = Modifier.padding(end = 12.dp)) }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Finish Book checkbox
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { isFinished = !isFinished },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Checkbox(checked = isFinished, onCheckedChange = { isFinished = it })
-                    Text("I've finished this book", modifier = Modifier.padding(start = 8.dp))
-                }
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Action Buttons
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { navController.popBackStack() }) { Text("Cancel") }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = {
-                            val pageRead = if (isFinished && currentPage.isBlank()) totalPages else currentPage.toIntOrNull()
-                            if (pageRead == null) {
-                                Toast.makeText(context, "Please enter a valid page number.", Toast.LENGTH_SHORT).show()
-                                return@Button
-                            }
-
-                            if (showStartDateField) {
-                                if (startDate == null) {
-                                    Toast.makeText(context, "Start date is required for the first progress.", Toast.LENGTH_SHORT).show()
-                                    return@Button
-                                }
-                                viewModel.insertStartReadingProgress(userLibraryId, startDate!!, lastReadingDate, pageRead, isFinished)
-                            } else {
-                                viewModel.addReadingProgress(userLibraryId, pageRead, lastReadingDate, isFinished)
-                            }
-                            navController.popBackStack()
-                        },
-                        enabled = !isLoading
-                    ) {
-                        Text("Save")
-                    }
-                }
-
                 if (isLoading) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    CircularProgressIndicator()
+                    CircularProgressIndicator(color = hijau5)
+                } else {
+                    val showStartDateField = firstReadingProgress == null
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("Add Your Progress", style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(bookTitle, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        if (showStartDateField) {
+                            DateField(
+                                label = "Start Date of Reading",
+                                date = startDate,
+                                onIconClick = { showStartDatePicker = true }
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+
+                        DateField(
+                            label = "Last Reading Date",
+                            date = lastReadingDate,
+                            onIconClick = { showLastDatePicker = true }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        OutlinedTextField(
+                            value = currentPage,
+                            onValueChange = { newValue ->
+                                if (newValue.isEmpty() || (newValue.toLongOrNull() ?: 0L) <= totalPages) {
+                                    currentPage = newValue
+                                }
+                            },
+                            label = { Text("Current Page") },
+                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            trailingIcon = { Text("/ $totalPages", modifier = Modifier.padding(end = 12.dp)) }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { isFinished = !isFinished },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(checked = isFinished, onCheckedChange = { isFinished = it })
+                            Text("I've finished this book", modifier = Modifier.padding(start = 8.dp))
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(onClick = { navController.popBackStack() }) { Text("Cancel") }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Button(
+                                onClick = {
+                                    val pageRead = if (isFinished && currentPage.isBlank()) totalPages else currentPage.toIntOrNull()
+                                    if (pageRead == null) {
+                                        Toast.makeText(context, "Please enter a valid page number.", Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+
+                                    if (showStartDateField) {
+                                        if (startDate == null) {
+                                            Toast.makeText(context, "Start date is required for the first progress.", Toast.LENGTH_SHORT).show()
+                                            return@Button
+                                        }
+                                        viewModel.insertStartReadingProgress(userLibraryId, startDate!!, lastReadingDate, pageRead, isFinished)
+                                    } else {
+                                        viewModel.addReadingProgress(userLibraryId, pageRead, lastReadingDate, isFinished)
+                                    }
+                                    // Navigasi tidak lagi dilakukan di sini, tetapi oleh LaunchedEffect
+                                },
+                                enabled = !isLoading
+                            ) {
+                                Text("Save")
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
-    // Date Picker Dialogs
     if (showStartDatePicker) {
         CustomDatePickerDialog(
             onDateSelected = { date ->

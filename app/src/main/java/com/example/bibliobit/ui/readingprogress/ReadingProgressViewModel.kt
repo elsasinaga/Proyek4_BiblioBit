@@ -37,7 +37,6 @@ class ReadingProgressViewModel @Inject constructor(
     private val _daysBetweenStartAndLast = MutableStateFlow(0L)
     val daysBetweenStartAndLast: StateFlow<Long> = _daysBetweenStartAndLast.asStateFlow()
 
-    // State untuk riwayat progres, dibutuhkan oleh YourProgressReadingScreen
     private val _progressHistory = MutableStateFlow<List<ReadingProgress>>(emptyList())
     val progressHistory: StateFlow<List<ReadingProgress>> = _progressHistory.asStateFlow()
 
@@ -46,6 +45,14 @@ class ReadingProgressViewModel @Inject constructor(
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
+
+    // --- SINYAL NAVIGASI BARU ---
+    private val _navigateToFinishedBookScreen = MutableStateFlow<Long?>(null)
+    val navigateToFinishedBookScreen: StateFlow<Long?> = _navigateToFinishedBookScreen.asStateFlow()
+
+    private val _progressUpdateComplete = MutableStateFlow<Boolean>(false)
+    val progressUpdateComplete: StateFlow<Boolean> = _progressUpdateComplete.asStateFlow()
+    // --- AKHIR SINYAL NAVIGASI BARU ---
 
     fun initialize(userLibraryId: Long) {
         if (userLibraryId == 0L) {
@@ -65,7 +72,7 @@ class ReadingProgressViewModel @Inject constructor(
                     _book.value = bookData
 
                     val history = readingProgressRepository.getReadingProgressByUserLibraryId(userLibraryId)
-                    _progressHistory.value = history.sortedByDescending { it.recordedAt } // Urutkan dari terbaru
+                    _progressHistory.value = history.sortedByDescending { it.recordedAt }
 
                     val firstProgress = history.minByOrNull { it.recordedAt?.time ?: Long.MAX_VALUE }
                     val lastProgress = history.maxByOrNull { it.recordedAt?.time ?: Long.MIN_VALUE }
@@ -91,6 +98,17 @@ class ReadingProgressViewModel @Inject constructor(
         }
     }
 
+    // --- FUNGSI BARU UNTUK RESET SINYAL ---
+    fun onNavigationToFinishedBookComplete() {
+        _navigateToFinishedBookScreen.value = null
+    }
+
+    fun onProgressUpdateNavigationComplete() {
+        _progressUpdateComplete.value = false
+    }
+    // --- AKHIR FUNGSI BARU ---
+
+
     fun addReadingProgress(
         userLibraryId: Long,
         pageRead: Int,
@@ -101,19 +119,25 @@ class ReadingProgressViewModel @Inject constructor(
             _isLoading.value = true
             _error.value = null
             try {
+                // Panggilan ini menyimpan progres DAN mengupdate last_page_read di backend.
                 readingProgressRepository.insert(ReadingProgress(userLibraryId, pageRead, recordedAt))
 
-                val currentEntry = userLibraryRepository.getUserLibraryById(userLibraryId)
-                val newStatus = if (isFinished) BookStatus.FINISH else BookStatus.READING
+                // Jika selesai, kita juga harus update status menjadi FINISH.
+                if (isFinished) {
+                    val currentEntry = userLibraryRepository.getUserLibraryById(userLibraryId)
+                    val totalPages = bookRepository.getBookById(currentEntry.bookId)?.pages ?: pageRead
+                    val updatedEntry = currentEntry.copy(
+                        status = BookStatus.FINISH,
+                        lastPageRead = totalPages // Saat selesai, update halaman ke total
+                    )
+                    userLibraryRepository.upsertUserLibrary(updatedEntry)
 
-                val updatedEntry = currentEntry.copy(
-                    lastPageRead = pageRead,
-                    status = newStatus,
-                    updatedAt = recordedAt
-                )
-                userLibraryRepository.upsertUserLibrary(updatedEntry)
-                // Panggil initialize lagi untuk refresh data di layar sebelumnya saat kembali
-                initialize(userLibraryId)
+                    // Beri sinyal ke UI untuk navigasi ke Finished Book Screen
+                    _navigateToFinishedBookScreen.value = currentEntry.bookId
+                } else {
+                    // Jika tidak selesai, beri sinyal ke UI untuk kembali (pop back)
+                    _progressUpdateComplete.value = true
+                }
             } catch (e: Exception) {
                 _error.value = "Failed to save progress: ${e.message}"
             } finally {
@@ -133,14 +157,16 @@ class ReadingProgressViewModel @Inject constructor(
             _isLoading.value = true
             _error.value = null
             try {
-                // Buat entri "Start Reading" di halaman 0
+                // Backend akan mengupdate last_page_read menjadi 0.
                 readingProgressRepository.insert(ReadingProgress(userLibraryId, 0, startDate))
-                // Buat entri progres aktual
+
+                // Panggilan ini akan menangani sisa logika, termasuk sinyal navigasi.
                 addReadingProgress(userLibraryId, pageRead, lastReadingDate, isFinished)
+
             } catch (e: Exception) {
                 _error.value = "Failed to save initial progress: ${e.message}"
             } finally {
-                _isLoading.value = false
+                // isLoading akan di-handle oleh pemanggilan addReadingProgress
             }
         }
     }

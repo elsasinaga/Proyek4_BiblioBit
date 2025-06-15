@@ -29,8 +29,7 @@ import java.util.Locale
 fun YourReadingBookScreen(
     userLibraryId: Long,
     viewModel: ReadingProgressViewModel,
-    modifier: Modifier = Modifier, // Parameter modifier untuk padding dari AppScaffold
-    // Parameter navController dihapus, karena navigasi Top/Bottom Bar di-handle oleh AppScaffold
+    modifier: Modifier = Modifier,
     onNavigateToAddProgress: (userLibraryId: Long, bookTitle: String, totalPages: Int) -> Unit,
     onNavigateToSeeProgress: (userLibraryId: Long, bookTitle: String, totalPages: Int) -> Unit,
     onNavigateToNotes: (userLibraryId: Long, bookTitle: String) -> Unit
@@ -49,9 +48,6 @@ fun YourReadingBookScreen(
         viewModel.initialize(userLibraryId)
     }
 
-    // Scaffold dihapus dari sini agar bisa dibungkus oleh AppScaffold di level navigasi
-
-    // Handling Loading and Error States
     if (isLoading) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = hijau5)
@@ -75,7 +71,7 @@ fun YourReadingBookScreen(
 
     // Main Content
     Column(
-        modifier = modifier // Menggunakan modifier dari parameter
+        modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp)
             .verticalScroll(rememberScrollState())
@@ -88,15 +84,35 @@ fun YourReadingBookScreen(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start
         ) {
-            Image(
-                painter = rememberAsyncImagePainter(book?.coverPhotoPath ?: ""),
-                contentDescription = "Book Cover",
-                modifier = Modifier
-                    .width(170.dp)
-                    .height(255.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
-            )
+            // Logika untuk menampilkan cover atau placeholder "No Cover"
+            if (book?.coverPhotoPath.isNullOrEmpty()) {
+                Surface(
+                    modifier = Modifier
+                        .width(170.dp)
+                        .height(255.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "No Cover",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            } else {
+                Image(
+                    painter = rememberAsyncImagePainter(book?.coverPhotoPath ?: ""),
+                    contentDescription = "Book Cover",
+                    modifier = Modifier
+                        .width(170.dp)
+                        .height(255.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
             Spacer(modifier = Modifier.width(16.dp))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ProgressInfoCard(title = "Progres Anda", value = "${userLibrary?.lastPageRead ?: 0} / ${book?.pages ?: 0}")
@@ -109,7 +125,7 @@ fun YourReadingBookScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Judul Buku
+        // Judul Buku dan Favorit
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -131,13 +147,30 @@ fun YourReadingBookScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
         Text(text = "oleh ${book?.author ?: "Penulis Tidak Diketahui"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
+        Text(
+            text = "Diterbitkan oleh ${book?.publisher ?: "Tidak Diketahui"}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = hijau5
+        )
 
         Divider(modifier = Modifier.padding(vertical = 16.dp))
 
-        // Sinopsis
-        Text("Sinopsis", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = hitam)
+        // Deskripsi (Sinopsis)
+        Text(book?.description ?: "Tidak ada deskripsi.", style = MaterialTheme.typography.bodyLarge, color = abu2)
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Informasi Buku (ditambahkan dari screen lain)
+        Text(
+            text = "Informasi Buku",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            color = hitam
+        )
         Spacer(modifier = Modifier.height(8.dp))
-        Text(book?.description ?: "Tidak ada deskripsi.", style = MaterialTheme.typography.bodyMedium, color = abu2)
+        Text("Genre: ${book?.genre ?: "Tidak Diketahui"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
+        Text("Jumlah Halaman: ${book?.pages ?: "Tidak Diketahui"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
+        Text("Tanggal Terbit: ${book?.year ?: "Tidak Diketahui"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
+        Text("ISBN: ${book?.isbn ?: "Tidak Diketahui"}", style = MaterialTheme.typography.bodyLarge, color = abu2)
 
         Spacer(modifier = Modifier.height(24.dp))
 
@@ -152,7 +185,8 @@ fun YourReadingBookScreen(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .height(50.dp)
+                    .height(40.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text("Edit Progres", style = MaterialTheme.typography.labelSmall)
             }
@@ -162,7 +196,8 @@ fun YourReadingBookScreen(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .height(50.dp)
+                    .height(40.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text("Lihat Progres", style = MaterialTheme.typography.labelSmall)
             }
@@ -172,7 +207,8 @@ fun YourReadingBookScreen(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .height(50.dp)
+                    .height(40.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
             ) {
                 Text("Catatan", style = MaterialTheme.typography.labelSmall)
             }

@@ -1,3 +1,5 @@
+// File: ui/yourwishlistbook/YourWishlistBookViewModel.kt
+
 package com.example.bibliobit.ui.yourwishlistbook
 
 import androidx.lifecycle.ViewModel
@@ -11,6 +13,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Date
 import javax.inject.Inject
@@ -20,7 +23,9 @@ data class WishlistBookUiState(
     val isLoading: Boolean = true,
     val book: Book? = null,
     val userLibrary: UserLibrary? = null,
-    val startReadingSuccess: Boolean = false // Flag untuk menandakan sukses
+    val error: String? = null,
+    val startReadingSuccess: Boolean = false, // Flag untuk menandakan sukses update
+    val newLibraryId: Long? = null // Menyimpan ID library baru setelah diupdate
 )
 
 @HiltViewModel
@@ -33,52 +38,64 @@ class YourWishlistBookViewModel @Inject constructor(
     val uiState: StateFlow<WishlistBookUiState> = _uiState.asStateFlow()
 
     /**
-     * Memuat data awal: detail buku dan data library-nya.
+     * Memuat data awal: detail buku dan data library-nya berdasarkan bookId.
      */
     fun loadData(bookId: Long) {
         viewModelScope.launch {
-            _uiState.value = WishlistBookUiState(isLoading = true)
+            _uiState.update { it.copy(isLoading = true) }
             try {
-                // Ambil data buku dari server
-                val book = bookRepository.getBookById(bookId)
+                // 1. Ambil data buku dari server berdasarkan bookId
+                val bookResult = bookRepository.getBookById(bookId)
 
-                // Ambil semua data library dan cari yang cocok
+                // 2. Ambil semua data library milik user dan cari yang cocok dengan bookId
+                // Catatan: Ini bisa dioptimalkan di backend dengan endpoint
+                // yang bisa mencari userLibrary berdasarkan book_id.
                 val allLibraryItems = userLibraryRepository.getUserLibrary()
-                val userLibrary = allLibraryItems.firstOrNull { it.bookId == bookId }
+                val userLibraryResult = allLibraryItems.firstOrNull { it.bookId == bookId }
 
-                _uiState.value = WishlistBookUiState(
-                    isLoading = false,
-                    book = book,
-                    userLibrary = userLibrary
-                )
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        book = bookResult,
+                        userLibrary = userLibraryResult
+                    )
+                }
             } catch (e: Exception) {
-                // Handle error
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
             }
         }
     }
 
     /**
-     * Mengubah status buku menjadi 'READING'.
+     * Mengubah status buku dari PLAN_TO_READ menjadi 'READING'.
      */
     fun startReading() {
+        // Ambil data userLibrary saat ini dari state
         val currentLibrary = _uiState.value.userLibrary ?: return
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.update { it.copy(isLoading = true) }
             try {
                 // Buat salinan objek dengan status yang diperbarui
                 val updatedEntry = currentLibrary.copy(
                     status = BookStatus.READING,
-                    updatedAt = Date()
+                    updatedAt = Date() // Perbarui tanggal
                 )
-                // Kirim pembaruan ke server
-                userLibraryRepository.upsertUserLibrary(updatedEntry)
 
-                // Update state untuk menandakan sukses
-                _uiState.value = _uiState.value.copy(isLoading = false, startReadingSuccess = true)
+                // Kirim pembaruan ke server melalui repository
+                val result = userLibraryRepository.upsertUserLibrary(updatedEntry)
+
+                // Update state untuk menandakan sukses dan simpan ID baru/terupdate
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        startReadingSuccess = true,
+                        newLibraryId = result.id // Simpan ID untuk navigasi
+                    )
+                }
 
             } catch (e: Exception) {
-                // Handle error
+                _uiState.update { it.copy(isLoading = false, error = e.message) }
             }
         }
     }

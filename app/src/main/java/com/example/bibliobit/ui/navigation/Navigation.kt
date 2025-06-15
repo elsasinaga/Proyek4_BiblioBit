@@ -223,13 +223,40 @@ fun AppNavHost(
             val viewModel: BookDetailViewModel = hiltViewModel()
             AppScaffold(navController = navController, title = "Book Details", showBackButton = true) { contentModifier ->
                 BookDetailScreen(
-                    modifier = contentModifier, // <-- TETAP PERTAHANKAN INI
+                    modifier = contentModifier,
                     bookId = bookId,
                     viewModel = viewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
         }
+
+        // ===================================================================
+        // PERBAIKAN: BLOK INI DITAMBAHKAN UNTUK MENGATASI CRASH
+        // ===================================================================
+        composable(
+            route = Screen.YourWishlistBook.route,
+            arguments = listOf(navArgument("bookId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val bookId = backStackEntry.arguments?.getLong("bookId") ?: 0L
+            val viewModel: YourWishlistBookViewModel = hiltViewModel()
+
+            AppScaffold(
+                navController = navController,
+                title = "My Wishlist",
+                showBackButton = true,
+                onBackClick = { navController.popBackStack() }
+            ) { modifier ->
+                YourWishlistBookScreen(
+                    modifier = modifier,
+                    bookId = bookId,
+                    viewModel = viewModel,
+                    navController = navController,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+        }
+        // ===================================================================
 
         composable(
             route = Screen.YourReadingBook.route,

@@ -1,6 +1,7 @@
 package com.example.bibliobit.data.remote
 
 import com.example.bibliobit.data.model.Book
+import com.example.bibliobit.data.model.GoogleBook
 import com.example.bibliobit.data.model.LocalUser
 import com.example.bibliobit.data.model.Note
 import com.example.bibliobit.data.model.ReadingProgress
@@ -88,5 +89,17 @@ class RemoteDataSource @Inject constructor(
 
     suspend fun getStatistics(filter: String): StatisticResponse {
         return apiService.getStatistics(filter)
+    }
+
+    suspend fun searchGoogleBooks(query: String): List<GoogleBook> {
+        return apiService.searchGoogleBooks(query)
+    }
+
+    suspend fun findGoogleBookByIsbn(isbn: String): GoogleBook {
+        return apiService.findGoogleBookByIsbn(isbn)
+    }
+
+    suspend fun findOrCreateBook(googleBook: GoogleBook): Book {
+        return apiService.findOrCreateBook(googleBook)
     }
 }

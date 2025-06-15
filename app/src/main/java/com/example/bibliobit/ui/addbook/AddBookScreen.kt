@@ -4,9 +4,11 @@ import android.Manifest
 import android.content.Context
 import android.net.Uri
 import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -30,13 +32,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.bibliobit.R
 import com.example.bibliobit.data.model.Book
+import com.example.bibliobit.data.model.GoogleBook
 import com.example.bibliobit.ui.navigation.Screen
 import com.example.bibliobit.utils.FileUtils
 import kotlinx.coroutines.CoroutineScope
@@ -48,6 +53,7 @@ import java.util.Date
 import java.util.Locale
 import com.example.bibliobit.ui.theme.hijau4
 import com.example.bibliobit.ui.theme.hitam
+import com.example.bibliobit.ui.theme.putih
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -58,10 +64,13 @@ fun AddBookScreen(
 ) {
     var showAddBookDialog by remember { mutableStateOf(false) }
     val searchQuery by viewModel.searchQuery.collectAsState()
-    val books by viewModel.books.collectAsState() // Dihilangkan initial value agar mengikuti state dari ViewModel
+    // --- DIPERBAIKI: Menggunakan searchResults dari Google API ---
+    val searchResults by viewModel.searchResults.collectAsState()
+//    val books by viewModel.books.collectAsState() // Dihilangkan initial value agar mengikuti state dari ViewModel
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = modifier
@@ -76,25 +85,12 @@ fun AddBookScreen(
         ) {
             OutlinedTextField(
                 value = searchQuery,
-                onValueChange = { query ->
-                    // ## DIPERBAIKI ##
-                    // Menggunakan nama fungsi yang baru dari ViewModel
-                    viewModel.onSearchQueryChanged(query)
-                },
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 8.dp)
-                    .padding(horizontal = 2.dp)
-                    .padding(top = 3.dp),
+                onValueChange = { viewModel.onSearchQueryChanged(it) },
+                modifier = Modifier.weight(1f).padding(end = 8.dp),
                 placeholder = { Text("Search books...") },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search Icon",
-                        tint = hijau4
-                    )
-                },
-                shape = RoundedCornerShape(12.dp)
+                leadingIcon = { Icon(Icons.Default.Search, "Search Icon", tint = hijau4) },
+                shape = RoundedCornerShape(12.dp),
+                singleLine = true
             )
 
             IconButton(
@@ -126,51 +122,39 @@ fun AddBookScreen(
                 }
             }
             errorMessage != null -> {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = errorMessage ?: "Unknown error",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                    Button(
-                        onClick = { viewModel.onSearchQueryChanged(searchQuery) }, // Coba lagi dengan query yang sama
-                        modifier = Modifier.padding(top = 8.dp)
-                    ) {
-                        Text("Try Again")
-                    }
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(errorMessage!!, color = MaterialTheme.colorScheme.error, textAlign = TextAlign.Center)
                 }
             }
-            books.isEmpty() && searchQuery.isNotBlank() -> {
-                Text(
-                    text = "No books found for \"$searchQuery\"",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
-            }
-            books.isEmpty() && searchQuery.isBlank() -> {
-                Text(
-                    text = "No books added yet. Search or add one manually.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
+            searchResults.isEmpty() -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = if (searchQuery.isBlank()) "Gunakan pencarian untuk menemukan buku baru." else "Buku tidak ditemukan untuk \"$searchQuery\"",
+                        textAlign = TextAlign.Center
+                    )
+                }
             }
             else -> {
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                    columns = GridCells.Adaptive(140.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(books) { book ->
-                        BookItem(
-                            book = book,
+                    items(searchResults) { googleBook ->
+                        GoogleBookItem(
+                            googleBook = googleBook,
+                            // --- AKSI KLIK DIPERBARUI ---
                             onClick = {
-                                navController.navigate(Screen.BookDetail.createRoute(book.id))
+                                scope.launch {
+                                    val bookId = viewModel.selectBookFromSearch(googleBook)
+                                    if (bookId != -1L) {
+                                        navController.navigate(Screen.BookDetail.createRoute(bookId))
+                                    } else {
+                                        // Opsional: Tampilkan pesan error jika terjadi kegagalan
+                                        Toast.makeText(context, "Gagal membuka detail buku", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             }
                         )
                     }
@@ -211,79 +195,6 @@ fun AddBookScreen(
                     }
                 }
             }
-        )
-    }
-}
-
-
-// Composable BookItem dan AddBookDialog tidak perlu diubah, jadi saya tidak sertakan lagi
-// untuk menjaga respons tetap ringkas. Cukup gunakan kode yang sudah Anda miliki untuk kedua fungsi tersebut.
-@Composable
-fun BookItem(
-    book: Book,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(4.dp)
-            .clickable { onClick() },
-        horizontalAlignment = Alignment.Start
-    ) {
-        if (book.coverPhotoPath != null) {
-            Image(
-                painter = rememberAsyncImagePainter(book.coverPhotoPath),
-                contentDescription = "Book Cover",
-                modifier = Modifier
-                    .width(140.dp)
-                    .height(210.dp)
-                    .padding(bottom = 8.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Surface(
-                modifier = Modifier
-                    .width(140.dp)
-                    .height(210.dp)
-                    .padding(bottom = 8.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "No Cover",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
-            }
-        }
-
-        Text(
-            text = book.title,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = hitam
-            ),
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Start,
-            maxLines = 2,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 4.dp)
-        )
-
-        Text(
-            text = book.author,
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontWeight = FontWeight.Bold,
-                color = hijau4
-            ),
-            textAlign = TextAlign.Start,
-            maxLines = 1,
-            modifier = Modifier.fillMaxWidth()
         )
     }
 }
@@ -574,6 +485,75 @@ fun AddBookDialog(
                     Text("Cancel")
                 }
             }
+        )
+    }
+}
+
+// --- Composable Baru untuk menampilkan hasil pencarian ---
+/**
+ * Composable baru untuk menampilkan setiap item buku dari hasil pencarian Google.
+ */
+@Composable
+fun GoogleBookItem(
+    googleBook: GoogleBook,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .width(140.dp)
+            .clickable { onClick() }, // Seluruh item bisa diklik
+        horizontalAlignment = Alignment.Start
+    ) {
+        Surface(
+            modifier = Modifier.width(140.dp).height(210.dp),
+            shape = RoundedCornerShape(8.dp),
+            shadowElevation = 4.dp
+        ) {
+            if (!googleBook.coverPhotoPath.isNullOrBlank()) {
+                val imageModel = if (googleBook.coverPhotoPath.startsWith("http")) {
+                    googleBook.coverPhotoPath.replace("http://", "https://")
+                } else {
+                    File(googleBook.coverPhotoPath)
+                }
+
+                AsyncImage(
+                    model = imageModel,
+                    contentDescription = googleBook.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "No Cover",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = googleBook.title,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+            color = hitam, // ganti dengan MaterialTheme.colorScheme.onBackground jika perlu
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            text = googleBook.author,
+            style = MaterialTheme.typography.bodySmall,
+            color = hijau4, // ganti dengan MaterialTheme.colorScheme.secondary jika perlu
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

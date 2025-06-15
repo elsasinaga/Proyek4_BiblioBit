@@ -43,7 +43,7 @@ fun ReadingBookItem(
         // Cover Buku
         if (book.coverPhotoPath != null) {
             Image(
-                painter = rememberAsyncImagePainter(File(book.coverPhotoPath)),
+                painter = rememberAsyncImagePainter(book.coverPhotoPath),
                 contentDescription = "Book Cover",
                 modifier = Modifier
                     .width(140.dp)

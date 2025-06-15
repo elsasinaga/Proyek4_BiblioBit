@@ -1,6 +1,7 @@
 package com.example.bibliobit.data.remote
 
 import com.example.bibliobit.data.model.Book
+import com.example.bibliobit.data.model.GoogleBook
 import com.example.bibliobit.data.model.LocalUser
 import com.example.bibliobit.data.model.Note
 import com.example.bibliobit.data.model.ReadingProgress
@@ -97,4 +98,14 @@ interface ApiService {
     suspend fun getStatistics(
         @Query("filter") filter: String
     ): StatisticResponse
+
+    // --- Google Books ---
+    @GET("api/google-books/search")
+    suspend fun searchGoogleBooks(@Query("q") query: String): List<GoogleBook>
+
+    @GET("api/google-books/isbn/{isbn}")
+    suspend fun findGoogleBookByIsbn(@Path("isbn") isbn: String): GoogleBook
+
+    @POST("api/books/find-or-create")
+    suspend fun findOrCreateBook(@Body googleBook: GoogleBook): Book
 }

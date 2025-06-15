@@ -1,6 +1,7 @@
 package com.example.bibliobit.data.repository
 
 import com.example.bibliobit.data.model.Book
+import com.example.bibliobit.data.model.GoogleBook
 import com.example.bibliobit.data.remote.RemoteDataSource
 import javax.inject.Inject
 
@@ -42,5 +43,9 @@ class BookRepository @Inject constructor(
             it.title.contains(query, ignoreCase = true) ||
                     it.author.contains(query, ignoreCase = true)
         }
+    }
+
+    suspend fun findOrCreateBook(googleBook: GoogleBook): Book {
+        return remoteDataSource.findOrCreateBook(googleBook)
     }
 }

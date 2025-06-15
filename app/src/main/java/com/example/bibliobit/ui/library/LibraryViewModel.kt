@@ -34,12 +34,8 @@ class LibraryViewModel @Inject constructor(
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
     private var fetchJob: Job? = null
-    private var isInitialLoadDone = false // Penanda agar tidak load berulang kali
+    private var isInitialLoadDone = false
 
-    /**
-     * ## INI FUNGSI YANG HILANG ##
-     * Dipanggil sekali dari UI untuk memicu pemuatan data awal.
-     */
     fun setUserId(userId: String) {
         if (!isInitialLoadDone) {
             loadLibraryItems()
@@ -47,6 +43,7 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
+    // Fungsi setFilter dikembalikan seperti semula agar aman
     fun setFilter(status: BookStatus?) {
         if (_filter.value != status) {
             _filter.value = status
@@ -54,10 +51,22 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
+    // Fungsi setSearchQuery tidak diubah
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
         loadLibraryItems()
     }
+
+    // ===================================================================
+    // PERBAIKAN: Fungsi baru ditambahkan di sini
+    // ===================================================================
+    /**
+     * Fungsi publik yang aman untuk memuat ulang data dari UI.
+     */
+    fun refreshLibrary() {
+        loadLibraryItems()
+    }
+    // ===================================================================
 
     fun deleteBookFromLibrary(libraryId: Long) {
         viewModelScope.launch {
@@ -74,6 +83,7 @@ class LibraryViewModel @Inject constructor(
         }
     }
 
+    // Fungsi loadLibraryItems dikembalikan menjadi private lagi
     private fun loadLibraryItems() {
         fetchJob?.cancel()
         fetchJob = viewModelScope.launch {
@@ -81,7 +91,7 @@ class LibraryViewModel @Inject constructor(
             _errorMessage.value = null
             try {
                 val statusFilter: String? = _filter.value?.name
-                val query = _searchQuery.value
+                val query = _searchQuery.value.ifEmpty { null }
                 val items = userLibraryRepository.getUserLibrary(status = statusFilter, query = query)
                 _libraryItems.value = items
             } catch (e: Exception) {
